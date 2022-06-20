@@ -1,0 +1,5 @@
+- [ ] Group by (text, strongs, morph)
+- [ ] Click to show verse
+- [ ] Sort by (text asc/desc, strongs, morph)
+- [ ] Other versions
+- [ ] Faster initial load
