@@ -1,12 +1,14 @@
 import { parse } from "./parse";
+export type LemmaEntry = {
+  lemma: string[];
+  morph: string[];
+  text: string;
+  textNormalized: string;
+  verse: string;
+};
+
 export class Concordance {
-  concordance: {
-    lemma: string[];
-    morph: string[];
-    text: string;
-    textNormalized: string;
-    verse: string;
-  }[] = [];
+  concordance: LemmaEntry[] = [];
 
   constructor(data) {
     const chapters = parse(data).getElementsByTagName("chapter");
@@ -23,15 +25,35 @@ export class Concordance {
           const entry = {
             lemma: typeof lemma === "string" ? lemma.split(" ") : [],
             morph: typeof morph === "string" ? morph.split(" ") : [],
-            text: word.textContent,
-            textNormalized: word.textContent.toLocaleLowerCase(),
-            verse: verse.id,
+            text: word.textContent || '',
+            textNormalized: word.textContent?.toLocaleLowerCase() || "",
+            verse: verse.id || "Invalid",
           };
 
           this.concordance.push(entry);
         }
       });
     });
+  }
+
+  searchForLemma(text: string) {
+    if (text.match(/(G|H)\d+/i)) {
+      return this.searchByLemma("strong:" + text);
+    }
+
+    if (text.match(/strong:/i)) {
+      return this.searchByLemma(text);
+    }
+
+    if (text.match(/strongMorph\:|robinson\:/i)) {
+      return this.searchByMorph(text);
+    }
+
+    if (text.length < 3) {
+      return "Very short terms do not work well. Please use a longer term.";
+    }
+
+    return this.searchByText(text);
   }
 
   searchByText(text: string) {

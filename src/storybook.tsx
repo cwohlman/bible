@@ -10,7 +10,7 @@ const App = () => {
   const Story = stories[story] || (() => <div>No Story</div>);
 
   return (
-    <div onKeyDown={(e) => { setStory(e.key) }}>
+    <div >
       <Story/>
     </div>
   );
@@ -60,7 +60,7 @@ const OneStudy = () => {
   }, [searchTerm, concordance]);
 
   return <Layout>
-    <Study searchTerm={searchTerm} results={results} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} results={results} />
   </Layout>
 }
 const ThreeStudies = () => {
@@ -107,9 +107,9 @@ const ThreeStudies = () => {
   }, [searchTerm, concordance]);
 
   return <Layout>
-    <Study searchTerm={searchTerm} results={results} />
-    <Study searchTerm={searchTerm} results={results} />
-    <Study searchTerm={searchTerm} results={results} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
   </Layout>
 }
 
