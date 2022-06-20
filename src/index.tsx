@@ -1,11 +1,7 @@
+//import fs from 'fs';
 import * as React from "react";
 import * as ReactDom from "react-dom";
-// @ts-ignore
-import xmlDataUrl from "./kjv.xml";
 import { Concordance } from "./Concordance";
-
-import "bootstrap";
-import "bootstrap/dist/css/bootstrap.css"; // Import pre-compiled Bootstrap css
 
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -16,8 +12,8 @@ const App = () => {
   }>({ field: "bible", order: "asc" });
 
   React.useEffect(() => {
-    fetch(xmlDataUrl as string)
-      .then((response) => response.text())
+    import('./data')
+      .then((response) => response.bible)
       .then((text) => {
         setConcordance(new Concordance(text));
       })
