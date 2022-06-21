@@ -107,9 +107,9 @@ const ThreeStudies = () => {
   }, [searchTerm, concordance]);
 
   return <Layout>
-    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
-    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
-    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
+    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
   </Layout>
 }
 

@@ -21,7 +21,9 @@ export default ({ children }) => {
           </div>
         ) : null
       }
+      {/* <div className="flex-col flex-wrap h-full overflow-y-hidden"> */}
       {children}
+      {/* </div> */}
     </div>
   );
 };

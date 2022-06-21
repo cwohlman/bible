@@ -1,5 +1,6 @@
 import { parse } from "./parse";
 export type LemmaEntry = {
+  id: number;
   lemma: string[];
   morph: string[];
   text: string;
@@ -23,9 +24,10 @@ export class Concordance {
           const lemma = word.getAttribute("lemma");
           const morph = word.getAttribute("morph");
           const entry = {
+            id: this.concordance.length,
             lemma: typeof lemma === "string" ? lemma.split(" ") : [],
             morph: typeof morph === "string" ? morph.split(" ") : [],
-            text: word.textContent || '',
+            text: word.textContent || "",
             textNormalized: word.textContent?.toLocaleLowerCase() || "",
             verse: verse.id || "Invalid",
           };
@@ -34,6 +36,25 @@ export class Concordance {
         }
       });
     });
+  }
+
+  /**
+   * Gets a single verse by the reference (normalized)
+   * @param verse the reference for the verse to be returned
+   * @returns the set of lemmas, in order, which represent the verse
+   */
+  getVerse(verse: string): LemmaEntry[] {
+    return this.concordance.filter((a) => a.verse == verse);
+  }
+
+  /**
+   * Gets a slice of verses by id (index)
+   * @param start The id of the first verse to be returned
+   * @param end The id of the last verse to be returned
+   */
+  getVersesById(start: number, end: number): LemmaEntry[] {
+    // slice returns elements exclusive of the last element, but we want to include it.
+    return this.concordance.slice(start, end + 1);
   }
 
   searchForLemma(text: string) {
