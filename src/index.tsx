@@ -3,7 +3,10 @@ import * as React from "react";
 import * as ReactDom from "react-dom";
 import { Concordance } from "./Concordance";
 import Layout from "./Layout";
-import Study from "./Study";
+import Study, { StudyParams } from "./Study";
+import { useImmer } from "use-immer";
+
+let nextId = 0;
 
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -14,7 +17,7 @@ const App = () => {
   }>({ field: "bible", order: "asc" });
 
   React.useEffect(() => {
-    import('./data')
+    import("./data")
       .then((response) => response.bible)
       .then((text) => {
         setConcordance(new Concordance(text));
@@ -24,10 +27,69 @@ const App = () => {
       });
   }, []);
 
+  const [studies, setStudies] = useImmer<StudyParams[]>([
+    {
+      id: nextId++ + "",
+      searchTerm: "faithful",
+      searchType: "lemma",
+      visible: {
+        reference: true,
+        morph: true,
+        strongs: true,
+        lemma: true,
+        KJV: true,
+      },
+      interlinear: true,
+      groupBy: "book",
+      collapsedGroups: [],
+      output: "KJV",
+      outputFormat: "list",
+      context: "5 words",
+      hide: false,
+    },
+  ]);
 
   return (
     <Layout>
-      <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} concordance={concordance} />
+      {studies.map((study) => (
+        <Study
+          study={study}
+          update={(m) =>
+            setStudies((all) => {
+              m(all.find((a) => a.id == study.id) as StudyParams);
+            })
+          }
+          concordance={concordance}
+        />
+      ))}
+
+      <button
+        onClick={() =>
+          setStudies((draft) => {
+            draft.push({
+              id: nextId++ + "",
+              searchTerm: "faithful",
+              searchType: "lemma",
+              visible: {
+                reference: true,
+                morph: true,
+                strongs: true,
+                lemma: true,
+                KJV: true,
+              },
+              interlinear: true,
+              groupBy: "book",
+              collapsedGroups: [],
+              output: "KJV",
+              outputFormat: "list",
+              context: "5 words",
+              hide: false,
+            });
+          })
+        }
+      >
+        New Study
+      </button>
     </Layout>
   );
 };

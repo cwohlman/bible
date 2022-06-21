@@ -40,7 +40,7 @@ export type OutputType =
 export type FormatType = "csv" | "json" | "list" | "pretty";
 export type ContextType =
   | "lemma"
-  | "7 words"
+  | "5 words"
   | "1 verse"
   | "3 verses"
   | "5 verses";
@@ -71,35 +71,35 @@ export const outputOptions = [
   "morph",
 ];
 export const formatOptions = ["csv", "json", "list", "pretty"];
-export const contextOptions = ["lemma", "7 words", "1 verse", "3 verses"];
+export const contextOptions = ["lemma", "5 words", "1 verse", "3 verses"];
+
+export type StudyParams = {
+  id: string;
+  searchTerm: string;
+  searchType: SearchType;
+  groupBy: GroupByType;
+  collapsedGroups: string[], 
+  visible: {
+    [k in VisibleType]: boolean;
+  };
+  interlinear: boolean;
+  output: OutputType;
+  context: ContextType;
+  outputFormat: FormatType;
+  hide: boolean;
+};
+
 export default function Study({
-  searchTerm,
-  setSearchTerm,
-  searchType,
-  setSearchType,
-  groupBy,
-  setGroupBy,
-  hide,
+  study,
+  update,
   concordance,
 }: {
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  searchType: SearchType;
-  setSearchType: (type: SearchType) => void;
-  groupBy: GroupByType;
-  setGroupBy: (type: GroupByType) => void;
-  visible: { [k in VisibleType]: boolean };
-  setVisible: (visible: { [k in VisibleType]: boolean }) => void;
-  output: OutputType;
-  setOutput: (type: OutputType) => void;
-  context: ContextType;
-  setContext: (context: ContextType) => void;
-  outputFormat: FormatType;
-  setOutputFormat: (format: FormatType) => void;
-  hide: boolean;
-  concordance: Concordance;
+  study: StudyParams;
+  update: (modifier: (draft: StudyParams) => void) => void;
+  concordance?: Concordance;
 }) {
   // TODO: move results here instead of passing them in
+  const { searchTerm, hide } = study;
 
   const results = React.useMemo(() => {
     if (!concordance) {
@@ -131,7 +131,10 @@ export default function Study({
   const debounceTimeout = React.useRef<number>();
 
   return (
-    <div style={{maxHeight: "calc(100vh - 2.5rem)"}} className="flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200">
+    <div
+      style={{ maxHeight: "calc(100vh - 2.5rem)" }}
+      className="flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200"
+    >
       <div className="border-b border-gray-200 p-1">
         <div className="flex items-center">
           <div className="grow">
@@ -146,13 +149,14 @@ export default function Study({
                 type="text"
                 name="searchTerm"
                 id="searchTerm"
+                defaultValue={searchTerm}
                 onChange={(e) => {
                   if (debounceTimeout.current) {
                     clearTimeout(debounceTimeout.current);
                   }
                   const target = e.target;
                   debounceTimeout.current = setTimeout(() => {
-                    setSearchTerm(target.value);
+                    update(study => {study.searchTerm = target.value; return study;});
                   }, 300) as any;
                 }}
                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full h-10 pl-10 pr-16 sm:text-sm border-gray-300 rounded-md"
@@ -240,14 +244,13 @@ export default function Study({
           <p className="text-lg italic text-center p-5 text-gray-800">
             {results}
           </p>
-        ) 
-        : results.length > 300 ? (
+        ) : results.length > 300 ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Please narrow your search to fewer than 300 results.
+            {results.length} results found. Please narrow your search to fewer
+            than 300 results.
           </p>
-        ) 
-        : (
-          results.map((r, i) => {
+        ) : (
+          concordance && results.map((r, i) => {
             return <Result key={i} result={r} concordance={concordance} />;
             // return <div key={i}>{r.verse}</div>
           })
@@ -399,7 +402,12 @@ export function Result({
       </div>
       <div className="flex overflow-x-auto justify-items-stretch">
         {context.map((lemma, i) => (
-          <Lemma key={i} lemma={lemma} highlight={result == lemma} className="" />
+          <Lemma
+            key={i}
+            lemma={lemma}
+            highlight={result == lemma}
+            className=""
+          />
         ))}
       </div>
     </div>
