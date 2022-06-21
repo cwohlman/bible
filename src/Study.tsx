@@ -194,7 +194,7 @@ export default function Study({
             <select
               id="groupBy"
               name="groupBy"
-              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="book"
             >
               {groupByOptions.map((value) => (
@@ -218,7 +218,7 @@ export default function Study({
             <select
               id="sortBy"
               name="sortBy"
-              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="book"
             >
               {sortByOptions.map((value) => (
@@ -299,7 +299,7 @@ export default function Study({
             <select
               id="context"
               name="context"
-              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="book"
             >
               {contextOptions.map((value) => (
@@ -319,7 +319,7 @@ export default function Study({
             <select
               id="output"
               name="output"
-              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="KJV"
             >
               {outputOptions.map((value) => (
@@ -343,7 +343,7 @@ export default function Study({
             <select
               id="format"
               name="format"
-              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="KJV"
             >
               {formatOptions.map((value) => (
