@@ -1,4 +1,5 @@
 import { parse } from "./parse";
+import MiniSearch from 'minisearch'
 
 export type LemmaEntry = {
   id: number;
@@ -11,6 +12,7 @@ export type LemmaEntry = {
 
 export type VerseEntry = {
   reference: string;
+  text: string;
   words: LemmaEntry[];
 }
 
@@ -28,37 +30,72 @@ export class Concordance {
   verseList: VerseEntry[] = [];
   lemmaList: LemmaEntry[] = [];
 
+  textIndex: MiniSearch<VerseEntry>;
+
   constructor(data) {
     const chapters = parse(data).getElementsByTagName("chapter");
 
+    // this.textIndex = new MiniSearch();
+
     Array.from(chapters).forEach((chapter) => {
       let verseId = chapter.getAttribute("osisID");
-      let verse: VerseEntry = this.addVerse(verseId);
       
-      Array.from(chapter.childNodes).forEach((child) => {
-        if (child instanceof Element) {
-          if (child.tagName === "verse") {
-            verse = this.addVerse(child.getAttribute("osisID"));
-          } else if (child.tagName === "w") {
-            const word = child;
-            const lemma = word.getAttribute("lemma");
-            const morph = word.getAttribute("morph");
-            
-            
-            this.addLemma(verse, word.textContent || "", lemma, morph);
-          }
-        } else if (child instanceof Text && child.wholeText.trim() != "") {
-          this.addLemma(verse, child.wholeText, null, null);
-        }
-      });
+      this.currentVerse = this.addVerse(verseId);
+      
+      Array.from(chapter.childNodes).forEach((child) => this.parseNode(child));
 
       this.translationList = Object.keys(this.translationIndex);
       this.verseReferenceList = Object.keys(this.verseReferenceIndex);
     });
   }
 
+  currentVerse: VerseEntry;
+  parseNode(child: Node) {
+      if (child instanceof Element) {
+        if (child.tagName === "verse") {
+          this.currentVerse = this.addVerse(child.getAttribute("osisID"));
+          this.currentVerse.text = child.textContent || "";
+        } else if (child.tagName === "w") {
+          const word = child;
+          const lemma = word.getAttribute("lemma");
+          const morph = word.getAttribute("morph");
+          
+          
+          this.addLemma(this.currentVerse, word.textContent || "", lemma, morph);
+        } else if (child.tagName === "transChange") {
+          const word = child;
+
+          this.addLemma(this.currentVerse, word.textContent || "", null, null);
+        } else if (child.tagName === "foreign") {
+          const word = child;
+
+          this.addLemma(this.currentVerse, word.textContent || "", null, null);
+        } else if (child.tagName === "title") {
+          child.childNodes.forEach(node => this.parseNode(node));
+        } else if (child.tagName === "q") {
+          child.childNodes.forEach(node => this.parseNode(node));
+        } else if (child.tagName === "inscription") {
+          child.childNodes.forEach(node => this.parseNode(node));
+        } else if (child.tagName === "divineName") {
+          child.childNodes.forEach(node => this.parseNode(node));
+        } else if (child.tagName === "milestone") {
+          // Ignore milestones
+        } else if (child.tagName === "note") {
+          // Ignore notes
+        } else {
+          throw new Error("Unrecognized node:" + child.tagName);
+        }
+      } else if (child instanceof Text) {
+        if (child.wholeText.trim() != "")
+          this.addLemma(this.currentVerse, child.wholeText, null, null);
+      } else {
+        throw new Error("Unrecognized node:" + child.nodeName);
+      }
+    
+  }
+
   addVerse(verseId: string | null): VerseEntry {
-    const entry = { reference: verseId || "invalid:" + this.verseList.length, words: [] };
+    const entry = { reference: verseId || "invalid:" + this.verseList.length, text: "", words: [] };
 
     this.verseList.push(entry);
     this.verseReferenceIndex[entry.reference] = entry;
