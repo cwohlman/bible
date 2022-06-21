@@ -7,7 +7,7 @@ export default ({ children }) => {
   return (
     <div className="lg:flex lg:w-screen lg:h-screen lg:overflow-y-hidden lg:overflow-x-auto bg-amber-50">
       <div className="p-5 lg:pr-0 flex lg:flex-col">
-        <header className="lg:[writing-mode:vertical-lr] lg:[text-orientation:upright] uppercase font-bold text-xl grow">
+        <header className="lg:[writing-mode:vertical-lr] lg:[text-orientation:upright] uppercase font-bold text-xl font-serif grow">
           <a href="/">Bible Search</a>
         </header>
         <a

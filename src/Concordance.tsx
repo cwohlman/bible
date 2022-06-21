@@ -16,23 +16,54 @@ export class Concordance {
 
     Array.from(chapters).forEach((chapter) => {
       let verse = { id: chapter.getAttribute("osisID") };
-      const elements = Array.from(chapter.children).forEach((child) => {
-        if (child.tagName === "verse") {
-          verse = { id: child.getAttribute("osisID") };
-        } else if (child.tagName === "w") {
-          const word = child;
-          const lemma = word.getAttribute("lemma");
-          const morph = word.getAttribute("morph");
+      const elements = Array.from(chapter.childNodes).forEach((child) => {
+        if (child instanceof Element) {
+          if (child.tagName === "verse") {
+            verse = { id: child.getAttribute("osisID") };
+          } else if (child.tagName === "w") {
+            const word = child;
+            const lemma = word.getAttribute("lemma");
+            const morph = word.getAttribute("morph");
+            const entry = {
+              id: this.concordance.length,
+              lemma:
+                typeof lemma === "string"
+                  ? lemma.split(" ").filter((a, i, array) => {
+                      return array.indexOf(a) == i;
+                    })
+                  : [],
+              morph:
+                typeof morph === "string"
+                  ? morph.split(" ").filter((a, i, array) => {
+                      return array.indexOf(a) == i;
+                    })
+                  : [],
+              text: word.textContent || "",
+              textNormalized: word.textContent?.toLocaleLowerCase() || "",
+              verse: verse.id || "Invalid",
+            };
+
+            this.concordance.push(entry);
+          }
+        } else if (child instanceof Text && child.wholeText.trim() != "") {
+          const lemma = "~";
+          const morph = "";
           const entry = {
             id: this.concordance.length,
-            lemma: typeof lemma === "string" ? lemma.split(" ").filter((a, i, array) => {
-              return array.indexOf(a) == i;
-            }) : [],
-            morph: typeof morph === "string" ? morph.split(" ").filter((a, i, array) => {
-              return array.indexOf(a) == i;
-            }) : [],
-            text: word.textContent || "",
-            textNormalized: word.textContent?.toLocaleLowerCase() || "",
+            lemma:
+              typeof lemma === "string"
+                ? lemma.split(" ").filter((a, i, array) => {
+                    return array.indexOf(a) == i;
+                  })
+                : [],
+            morph:
+              typeof morph === "string"
+                ? morph.split(" ").filter((a, i, array) => {
+                    return array.indexOf(a) == i;
+                  })
+                : [],
+            text: child.wholeText || "",
+            textNormalized: child.wholeText?.toLocaleLowerCase() || "",
             verse: verse.id || "Invalid",
           };
 
