@@ -8,6 +8,8 @@ import {
   SearchIcon,
   LinkIcon,
   XIcon,
+  MinusIcon,
+  PlusIcon,
 } from "@heroicons/react/outline";
 import * as React from "react";
 import { Fragment } from "react";
@@ -106,7 +108,7 @@ export default function Study({
   concordance?: Concordance;
 }) {
   // TODO: move results here instead of passing them in
-  const { searchTerm, hide } = study;
+  const { searchTerm, hide: hidden } = study;
 
   const results = React.useMemo(() => {
     if (!concordance) {
@@ -128,19 +130,17 @@ export default function Study({
       return concordance.searchByMorph(searchTerm);
     }
 
-    if (searchTerm.length < 3) {
-      return "Very short terms do not work well. Please use a longer term.";
-    }
-
     return concordance.searchByText(searchTerm);
   }, [searchTerm, concordance]);
 
   const debounceTimeout = React.useRef<number>();
 
+  const hide = () => update(draft => { draft.hide = ! draft.hide });
+
   return (
     <div
       style={{ maxHeight: "calc(100vh - 2.5rem)" }}
-      className="flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200"
+      className={classNames("flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200", ! hidden && "h-full")}
     >
       <div className="border-b border-gray-200 p-1">
         <div className="flex items-center">
@@ -319,22 +319,29 @@ export default function Study({
       </div>
 
       <div className="grow overflow-y-auto">
-        {hide ? null : typeof results == "string" ? (
+        {hidden ? <p className="text-lg italic text-center p-5 text-gray-800">
+            Minimized
+          </p> : typeof results == "string" ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
             {results}
           </p>
-        ) : results.length > 300 ? (
-          <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Please narrow your search to fewer
-            than 300 results.
-          </p>
-        ) : (
+        ) :  (
           concordance &&
-          results.map((r, i) => {
+          results.slice(0, 300).map((r, i) => {
             return <Result key={i} result={r} concordance={concordance} />;
             // return <div key={i}>{r.verse}</div>
           })
         )}
+        {results.length > 300 ? (
+          <p className="text-lg italic text-center p-5 text-gray-800">
+            {results.length} results found. Only the first 300 results are shown.
+          </p>
+        ) : null}
+        {results.length < 1 ? (
+          <p className="text-lg italic text-center p-5 text-gray-800">
+            No results found.
+          </p>
+        ) : null}
       </div>
       <div className="border-t border-gray-200">
         <div className="p-1 flex flex-wrap gap-2 justify-between">
@@ -393,10 +400,16 @@ export default function Study({
           <div>
             <button
               type="button"
+              className={classNames(hidden ? "bg-green-100" : "bg-yellow-100", "inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}
+              onClick={() => hide()}
+            >
+              {hidden ? <PlusIcon  className="w-4 h-4 inline"/> : <MinusIcon className="w-4 h-4 inline" />}
+            </button>
+            <button
+              type="button"
               className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               onClick={() => close()}
             >
-              Close
               <XIcon className="w-4 h-4 inline" />
             </button>
           </div>
@@ -414,7 +427,7 @@ export function Result({
   concordance: Concordance;
 }) {
   const context = React.useMemo(
-    () => concordance?.getVersesById(result.id - 2, result.id + 2),
+    () => concordance?.getLemmasById(result.id - 2, result.id + 2),
     [result.id - 2, result.id + 2]
   );
   return (
@@ -434,7 +447,7 @@ export function Result({
               htmlFor={"comments-" + result.id}
               className="font-serif font-medium text-gray-900"
             >
-              {result.verse}
+              {result.reference}
             </label>
           </div>
         </div>
@@ -476,7 +489,7 @@ export function Lemma({
           highlight && "font-bold"
         )}
       >
-        {lemma.text || <>&nbsp;</>}
+        {lemma.translation || <>&nbsp;</>}
       </div>
       <div className="whitespace-nowrap italic text-gray-700 text-sm">
         {!lemma.morph.length && <>&nbsp;</>}

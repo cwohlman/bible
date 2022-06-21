@@ -1,76 +1,110 @@
 import { parse } from "./parse";
+
 export type LemmaEntry = {
   id: number;
+  reference: string;
+  position: number;
+  translation: string;
   lemma: string[];
   morph: string[];
-  text: string;
-  textNormalized: string;
-  verse: string;
 };
 
+export type VerseEntry = {
+  reference: string;
+  words: LemmaEntry[];
+}
+
 export class Concordance {
-  concordance: LemmaEntry[] = [];
+  translationIndex: { [translation: string]: LemmaEntry[] } = {};
+  translationList: string[] = [];
+
+  lemmaIndex: { [lemma: string]: LemmaEntry[] } = {};
+  
+  morphIndex: { [morphCode: string]: LemmaEntry[] } = {};
+
+  verseReferenceIndex: { [verseRef: string]: VerseEntry } = {};
+  verseReferenceList: string[] = [];
+
+  verseList: VerseEntry[] = [];
+  lemmaList: LemmaEntry[] = [];
 
   constructor(data) {
     const chapters = parse(data).getElementsByTagName("chapter");
 
     Array.from(chapters).forEach((chapter) => {
-      let verse = { id: chapter.getAttribute("osisID") };
-      const elements = Array.from(chapter.childNodes).forEach((child) => {
+      let verseId = chapter.getAttribute("osisID");
+      let verse: VerseEntry = this.addVerse(verseId);
+      
+      Array.from(chapter.childNodes).forEach((child) => {
         if (child instanceof Element) {
           if (child.tagName === "verse") {
-            verse = { id: child.getAttribute("osisID") };
+            verse = this.addVerse(child.getAttribute("osisID"));
           } else if (child.tagName === "w") {
             const word = child;
             const lemma = word.getAttribute("lemma");
             const morph = word.getAttribute("morph");
-            const entry = {
-              id: this.concordance.length,
-              lemma:
-                typeof lemma === "string"
-                  ? lemma.split(" ").filter((a, i, array) => {
-                      return array.indexOf(a) == i;
-                    })
-                  : [],
-              morph:
-                typeof morph === "string"
-                  ? morph.split(" ").filter((a, i, array) => {
-                      return array.indexOf(a) == i;
-                    })
-                  : [],
-              text: word.textContent || "",
-              textNormalized: word.textContent?.toLocaleLowerCase() || "",
-              verse: verse.id || "Invalid",
-            };
-
-            this.concordance.push(entry);
+            
+            
+            this.addLemma(verse, word.textContent || "", lemma, morph);
           }
         } else if (child instanceof Text && child.wholeText.trim() != "") {
-          const lemma = "~";
-          const morph = "";
-          const entry = {
-            id: this.concordance.length,
-            lemma:
-              typeof lemma === "string"
-                ? lemma.split(" ").filter((a, i, array) => {
-                    return array.indexOf(a) == i;
-                  })
-                : [],
-            morph:
-              typeof morph === "string"
-                ? morph.split(" ").filter((a, i, array) => {
-                    return array.indexOf(a) == i;
-                  })
-                : [],
-            text: child.wholeText || "",
-            textNormalized: child.wholeText?.toLocaleLowerCase() || "",
-            verse: verse.id || "Invalid",
-          };
-
-          this.concordance.push(entry);
+          this.addLemma(verse, child.wholeText, null, null);
         }
       });
+
+      this.translationList = Object.keys(this.translationIndex);
+      this.verseReferenceList = Object.keys(this.verseReferenceIndex);
     });
+  }
+
+  addVerse(verseId: string | null): VerseEntry {
+    const entry = { reference: verseId || "invalid:" + this.verseList.length, words: [] };
+
+    this.verseList.push(entry);
+    this.verseReferenceIndex[entry.reference] = entry;
+
+    return entry;
+  }
+
+  addLemma(verse: VerseEntry, translation: string, lemma: string | null, morph: string | null)
+  {
+    const entry: LemmaEntry = {
+      id: this.lemmaList.length,
+      reference: verse.reference,
+      position: verse.words.length,
+      translation,
+      lemma: this.parseLemma(lemma),
+      morph: this.parseMorphCodes(morph),
+    };
+
+    verse.words.push(entry);
+    this.lemmaList.push(entry);
+
+    const normalizedTranslation = translation.toLocaleLowerCase();
+    const translationIndexEntry = (this.translationIndex[normalizedTranslation] = this.translationIndex[normalizedTranslation] || []);
+    translationIndexEntry.push(entry);
+
+    entry.lemma.forEach(lemma => {
+      const lemmaIndexEntry = (this.lemmaIndex[lemma] = this.lemmaIndex[lemma] || []);
+      lemmaIndexEntry.push(entry);
+    })
+
+    entry.morph.forEach(morph => {
+      const morphIndexEntry = (this.morphIndex[morph] = this.morphIndex[morph] || []);
+      morphIndexEntry.push(entry);
+    })
+
+    return entry;
+  }
+  parseMorphCodes(morph: string | null): string[] {
+    if (! morph) return [];
+
+    return morph.split(/\s/).filter(a => a);
+  }
+  parseLemma(lemma: string | null): string[] {
+    if (! lemma) return [];
+
+    return lemma.split(/\s/).filter(a => a);
   }
 
   /**
@@ -79,7 +113,7 @@ export class Concordance {
    * @returns the set of lemmas, in order, which represent the verse
    */
   getVerse(verse: string): LemmaEntry[] {
-    return this.concordance.filter((a) => a.verse == verse);
+    throw new Error("Not implemented");
   }
 
   /**
@@ -87,12 +121,20 @@ export class Concordance {
    * @param start The id of the first verse to be returned
    * @param end The id of the last verse to be returned
    */
-  getVersesById(start: number, end: number): LemmaEntry[] {
+  getLemmasById(start: number, end: number): LemmaEntry[] {
     // slice returns elements exclusive of the last element, but we want to include it.
-    return this.concordance.slice(start, end + 1);
+    return this.lemmaList.slice(start, end + 1);
   }
 
   searchForLemma(text: string) {
+    // todo: split by whitespace & apply search type
+    // search rules:
+    // `word` should match whole word
+    // `word*` should match starts with "word"
+    // `"some words"` should match whole translation
+    // `~word` should match fuzzy
+    // `[word word]` should match translation, provided both words are in it (words could be of different types, e.g. strongs, morph, etc.)
+
     if (text.match(/(G|H)\d+/i)) {
       return this.searchByLemma("strong:" + text);
     }
@@ -105,41 +147,23 @@ export class Concordance {
       return this.searchByMorph(text);
     }
 
-    if (text.length < 3) {
-      return "Very short terms do not work well. Please use a longer term.";
-    }
-
     return this.searchByText(text);
   }
 
   searchByText(text: string) {
     const normalizedText = text.toLocaleLowerCase(); // todo convert to regex and make sure that the text is bounded by word separators
-    return this.concordance.filter((entry) => {
-      if (entry.textNormalized.indexOf(normalizedText) !== -1) {
-        return true;
-      }
-    });
+    const matchingTranslations = this.translationList.filter(a => a.indexOf(normalizedText) != -1);
+    
+    return matchingTranslations.map(a => this.translationIndex[a]).flat().sort((a, b) => a.id - b.id);
   }
 
   searchByLemma(text: string) {
     const normalizedText = text.toLocaleUpperCase(); // todo convert to regex and make sure that the text is bounded by word separators
-    return this.concordance.filter((entry) => {
-      if (entry.lemma.find((l) => l.toLocaleUpperCase() === normalizedText)) {
-        return true;
-      }
-    });
+    return this.lemmaIndex[normalizedText] || [];
   }
 
   searchByMorph(text: string) {
     const normalizedText = text.toLocaleUpperCase(); // todo convert to regex and make sure that the text is bounded by word separators
-    return this.concordance.filter((entry) => {
-      if (
-        entry.morph.find((l) =>
-          l.toLocaleUpperCase().startsWith(normalizedText)
-        )
-      ) {
-        return true;
-      }
-    });
+    return this.morphIndex[normalizedText] || [];
   }
 }
