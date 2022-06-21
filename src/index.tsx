@@ -80,6 +80,7 @@ const App = () => {
               m(all.find((a) => a.id == study.id) as StudyParams);
             })
           }
+          close={() => setStudies((all) => all.filter((a) => a.id != study.id))}
           concordance={concordance}
         />
       ))}

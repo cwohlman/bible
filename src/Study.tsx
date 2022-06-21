@@ -6,6 +6,8 @@ import {
   ChevronDownIcon,
   DocumentDownloadIcon,
   SearchIcon,
+  LinkIcon,
+  XIcon,
 } from "@heroicons/react/outline";
 import * as React from "react";
 import { Fragment } from "react";
@@ -95,10 +97,12 @@ export type StudyParams = {
 export default function Study({
   study,
   update,
+  close,
   concordance,
 }: {
   study: StudyParams;
   update: (modifier: (draft: StudyParams) => void) => void;
+  close: () => void;
   concordance?: Concordance;
 }) {
   // TODO: move results here instead of passing them in
@@ -354,12 +358,13 @@ export default function Study({
                 <option>{value}</option>
               ))}
             </select>
-            {/* <button
+            <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-yellow-100 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Search
-            </button> */}
+              Link
+              <LinkIcon className="w-4 h-4 inline" />
+            </button>
           </div>
           <div className="flex items-baseline">
             <label
@@ -381,10 +386,20 @@ export default function Study({
             </select>
             <button
               type="button"
-              className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-green-100 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Export
               <DocumentDownloadIcon className="w-4 h-4 inline" />
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => close()}
+            >
+              Close
+              <XIcon className="w-4 h-4 inline" />
             </button>
           </div>
         </div>
