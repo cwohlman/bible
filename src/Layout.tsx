@@ -27,7 +27,7 @@ export default ({ children }) => {
           <p>Copyright (c) 2022 Ohlman IO LLC</p>
         </div>
       ) : null}
-      <div className="lg:flex lg:flex-col lg:flex-wrap lg:h-screen lg:w-full">
+      <div className="lg:flex lg:flex-col lg:flex-wrap lg:h-screen lg:w-full content-start">
         {children}
       </div>
     </div>

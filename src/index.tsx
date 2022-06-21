@@ -5,8 +5,8 @@ import { Concordance } from "./Concordance";
 import Layout from "./Layout";
 import Study, { StudyParams } from "./Study";
 import { useImmer } from "use-immer";
-
-let nextId = 0;
+import { useEffect } from "react";
+import getId from "./getId";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -27,27 +27,48 @@ const App = () => {
       });
   }, []);
 
-  const [studies, setStudies] = useImmer<StudyParams[]>([
-    {
-      id: nextId++ + "",
-      searchTerm: "faithful",
-      searchType: "lemma",
-      visible: {
-        reference: true,
-        morph: true,
-        strongs: true,
-        lemma: true,
-        KJV: true,
+  const [studies, setStudies] = useImmer<StudyParams[]>(() => {
+    try {
+      const storedStudies = localStorage.getItem("studies");
+      if (storedStudies) return JSON.parse(storedStudies);
+    } catch (e) {}
+    return [
+      {
+        id: getId(),
+        searchTerm: "faithful",
+        searchType: "lemma",
+        visible: {
+          reference: true,
+          morph: true,
+          strongs: true,
+          lemma: true,
+          KJV: true,
+        },
+        interlinear: true,
+        groupBy: "book",
+        collapsedGroups: [],
+        output: "KJV",
+        outputFormat: "list",
+        context: "5 words",
+        hide: false,
       },
-      interlinear: true,
-      groupBy: "book",
-      collapsedGroups: [],
-      output: "KJV",
-      outputFormat: "list",
-      context: "5 words",
-      hide: false,
-    },
-  ]);
+    ];
+  });
+
+  const studiesRef = React.useRef(studies);
+
+  studiesRef.current = studies;
+
+  useEffect(() => {
+    window.addEventListener("beforeunload", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, []);
+
+  const handleUnload = (e) => {
+    localStorage.setItem("studies", JSON.stringify(studiesRef.current));
+  };
 
   return (
     <Layout>
@@ -67,9 +88,11 @@ const App = () => {
         onClick={() =>
           setStudies((draft) => {
             draft.push({
-              id: nextId++ + "",
-              searchTerm: "faithful",
+              id: getId(),
+              searchTerm: "",
               searchType: "lemma",
+              sortBy: "bible",
+              sortDirection: "asc",
               visible: {
                 reference: true,
                 morph: true,
@@ -79,6 +102,7 @@ const App = () => {
               },
               interlinear: true,
               groupBy: "book",
+              collapseAll: false,
               collapsedGroups: [],
               output: "KJV",
               outputFormat: "list",

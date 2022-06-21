@@ -78,7 +78,10 @@ export type StudyParams = {
   searchTerm: string;
   searchType: SearchType;
   groupBy: GroupByType;
-  collapsedGroups: string[], 
+  sortBy: SortByType;
+  sortDirection: "asc" | "desc";
+  collapseAll: boolean;
+  collapsedGroups: string[];
   visible: {
     [k in VisibleType]: boolean;
   };
@@ -139,12 +142,12 @@ export default function Study({
         <div className="flex items-center">
           <div className="grow">
             <label htmlFor="searchTerm" className="sr-only">
-              Serch
+              Search
             </label>
             <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-700">
+              <button className="absolute inset-y-px left-px px-3 flex focus:border-2 focus:border-indigo-500 focus:z-10 hover:bg-blue-100 hover:border-blue-200 hover:z-1 border-r border-gray-200 rounded-l-md items-center pointer-events text-gray-700">
                 <BookOpenIcon className="w-5 h-5" />
-              </div>
+              </button>
               <input
                 type="text"
                 name="searchTerm"
@@ -156,21 +159,30 @@ export default function Study({
                   }
                   const target = e.target;
                   debounceTimeout.current = setTimeout(() => {
-                    update(study => {study.searchTerm = target.value; return study;});
+                    update((study) => {
+                      study.searchTerm = target.value;
+                      return study;
+                    });
                   }, 300) as any;
                 }}
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full h-10 pl-10 pr-16 sm:text-sm border-gray-300 rounded-md"
+                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full h-10 pl-14 pr-32 sm:text-sm border-gray-300 rounded-md"
                 placeholder="Search the bible"
               />
               <div className="absolute inset-y-0 right-0 flex items-center">
+                <div className="text-gray-500 text-xs italic mr-3">
+                  {results instanceof Array
+                    ? `${results.length} Results`
+                    : null}
+                </div>
                 <label htmlFor="searchType" className="sr-only">
                   Search For
                 </label>
                 <select
                   id="searchType"
                   name="searchType"
-                  className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 text-sm rounded-md capitalize"
+                  className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-800 text-sm rounded-md capitalize"
                   defaultValue="lemma"
+                  value={study.searchType}
                 >
                   {searchTypeOptions.map((option) => (
                     <option>{option}</option>
@@ -200,6 +212,7 @@ export default function Study({
               name="groupBy"
               className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="book"
+              value={study.groupBy}
             >
               {groupByOptions.map((value) => (
                 <option>{value}</option>
@@ -212,6 +225,15 @@ export default function Study({
               <ArrowsExpandIcon className="w-4 h-4" />
             </button>
           </div>
+          {/* <div>
+
+          <button
+              type="button"
+              className="inline-block ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <BookOpenIcon className="w-4 h-4" />
+            </button>
+          </div> */}
           <div className="flex items-baseline">
             <label
               htmlFor="sortBy"
@@ -224,6 +246,7 @@ export default function Study({
               name="sortBy"
               className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="book"
+              value={study.sortBy}
             >
               {sortByOptions.map((value) => (
                 <option>{value}</option>
@@ -237,26 +260,6 @@ export default function Study({
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="grow overflow-y-auto">
-        {hide ? null : typeof results == "string" ? (
-          <p className="text-lg italic text-center p-5 text-gray-800">
-            {results}
-          </p>
-        ) : results.length > 300 ? (
-          <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Please narrow your search to fewer
-            than 300 results.
-          </p>
-        ) : (
-          concordance && results.map((r, i) => {
-            return <Result key={i} result={r} concordance={concordance} />;
-            // return <div key={i}>{r.verse}</div>
-          })
-        )}
-      </div>
-      <div className="border-t border-gray-200">
         <div className="flex justify-between p-1 pb-0">
           <div className="flex items-center">
             <span className="text-xs font-medium text-gray-700">Show</span>
@@ -303,7 +306,7 @@ export default function Study({
               id="context"
               name="context"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
-              defaultValue="book"
+              value={study.context}
             >
               {contextOptions.map((value) => (
                 <option>{value}</option>
@@ -311,6 +314,27 @@ export default function Study({
             </select>
           </div>
         </div>
+      </div>
+
+      <div className="grow overflow-y-auto">
+        {hide ? null : typeof results == "string" ? (
+          <p className="text-lg italic text-center p-5 text-gray-800">
+            {results}
+          </p>
+        ) : results.length > 300 ? (
+          <p className="text-lg italic text-center p-5 text-gray-800">
+            {results.length} results found. Please narrow your search to fewer
+            than 300 results.
+          </p>
+        ) : (
+          concordance &&
+          results.map((r, i) => {
+            return <Result key={i} result={r} concordance={concordance} />;
+            // return <div key={i}>{r.verse}</div>
+          })
+        )}
+      </div>
+      <div className="border-t border-gray-200">
         <div className="p-1 flex gap-2 justify-between">
           <div className="flex items-baseline">
             <label
@@ -324,6 +348,7 @@ export default function Study({
               name="output"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="KJV"
+              value={study.output}
             >
               {outputOptions.map((value) => (
                 <option>{value}</option>
@@ -348,6 +373,7 @@ export default function Study({
               name="format"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               defaultValue="KJV"
+              value={study.outputFormat}
             >
               {formatOptions.map((value) => (
                 <option>{value}</option>

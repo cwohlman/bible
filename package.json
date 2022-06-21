@@ -22,6 +22,7 @@
     "@headlessui/react": "^1.6.5",
     "@heroicons/react": "^1.0.6",
     "immer": "^9.0.15",
+    "random-seed": "^0.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "use-immer": "^0.7.0"
