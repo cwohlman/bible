@@ -2,10 +2,12 @@
 import * as React from "react";
 import * as ReactDom from "react-dom";
 import { Concordance } from "./Concordance";
+import Layout from "./Layout";
+import Study from "./Study";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [concordance, setConcordance] = React.useState<Concordance>(null);
+  const [concordance, setConcordance] = React.useState<Concordance>();
   const [sort, setSort] = React.useState<{
     field: "bible" | "text";
     order: "asc" | "desc";
@@ -22,81 +24,11 @@ const App = () => {
       });
   }, []);
 
-  const results = React.useMemo(() => {
-    if (!concordance) {
-      return "Loading";
-    }
-    if (!searchTerm) {
-      return "Please type your search above";
-    }
-
-    return concordance.searchForLemma(searchTerm);
-  }, [searchTerm, concordance]);
-
-  const debounceTimeout = React.useRef(null);
 
   return (
-    <div>
-      <div className="jumbotron text-center">
-        <form
-          style={{ maxWidth: "420px", margin: "0 auto" }}
-          onSubmit={(e) => {
-            analyticsEvent("search_submit");
-            e.preventDefault();
-          }}
-        >
-          <input
-            className="form-control"
-            type="text"
-            defaultValue={searchTerm}
-            placeholder="Search term"
-            onChange={(e) => {
-              if (debounceTimeout.current) {
-                clearTimeout(debounceTimeout.current);
-              }
-              const target = e.target;
-              debounceTimeout.current = setTimeout(() => {
-                analyticsEvent("search_timeout");
-                setSearchTerm(target.value);
-              }, 300);
-            }}
-          />
-          <p>
-            You can search for a word or phrase, Strong's Number (beginning with
-            G or H), or Morph code (beginning with strongMorph: or robinson:)
-          </p>
-        </form>
-      </div>
-
-      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
-        {typeof results === "string" ? (
-          results
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Text</th>
-                <th>Lemma</th>
-                <th>Morph</th>
-                <th>Verse</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((result) => {
-                return (
-                  <tr>
-                    <td>{result.text}</td>
-                    <td>{result.lemma.join(" ")}</td>
-                    <td>{result.morph.join(" ")}</td>
-                    <td>{result.verse}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+    <Layout>
+      <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} concordance={concordance} />
+    </Layout>
   );
 };
 

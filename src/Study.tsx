@@ -128,6 +128,8 @@ export default function Study({
     return concordance.searchByText(searchTerm);
   }, [searchTerm, concordance]);
 
+  const debounceTimeout = React.useRef<number>();
+
   return (
     <div style={{maxHeight: "calc(100vh - 2.5rem)"}} className="flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200">
       <div className="border-b border-gray-200 p-1">
@@ -144,9 +146,14 @@ export default function Study({
                 type="text"
                 name="searchTerm"
                 id="searchTerm"
-                value={searchTerm}
                 onChange={(e) => {
-                  setSearchTerm(e.target.value);
+                  if (debounceTimeout.current) {
+                    clearTimeout(debounceTimeout.current);
+                  }
+                  const target = e.target;
+                  debounceTimeout.current = setTimeout(() => {
+                    setSearchTerm(target.value);
+                  }, 300) as any;
                 }}
                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full h-10 pl-10 pr-16 sm:text-sm border-gray-300 rounded-md"
                 placeholder="Search the bible"
