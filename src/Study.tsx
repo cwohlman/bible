@@ -203,7 +203,7 @@ export default function Study({
             <input type="checkbox" className="mx-2" />
           </div> */}
         </div>
-        <div className="py-1 flex gap-2 justify-between">
+        <div className="py-1 flex gap-2 flex-wrap justify-between">
           <div className="flex items-baseline">
             <label
               htmlFor="groupBy"
@@ -241,7 +241,7 @@ export default function Study({
           <div className="flex items-baseline">
             <label
               htmlFor="sortBy"
-              className="block text-xs font-medium text-gray-700"
+              className="block text-xs ml-1 font-medium text-gray-700"
             >
               Sort By
             </label>
@@ -263,38 +263,36 @@ export default function Study({
               <SortAscendingIcon className="w-4 h-4" />
             </button>
           </div>
-        </div>
-        <div className="flex justify-between p-1 pb-0">
           <div className="flex items-center">
-            <span className="text-xs font-medium text-gray-700">Show</span>
+            <span className="text-xs font-medium  ml-1 text-gray-700">Show</span>
 
             {/* <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Lemma
             </button> */}
             <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               KJV
             </button>
             <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Strongs
             </button>
             <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Morph
             </button>
             <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Interlinear
             </button>
@@ -339,7 +337,7 @@ export default function Study({
         )}
       </div>
       <div className="border-t border-gray-200">
-        <div className="p-1 flex gap-2 justify-between">
+        <div className="p-1 flex flex-wrap gap-2 justify-between">
           <div className="flex items-baseline">
             <label
               htmlFor="output"
