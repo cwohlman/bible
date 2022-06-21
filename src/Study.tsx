@@ -80,7 +80,6 @@ export default function Study({
   groupBy,
   setGroupBy,
   hide,
-  results,
   concordance,
 }: {
   searchTerm: string;
@@ -98,11 +97,37 @@ export default function Study({
   outputFormat: FormatType;
   setOutputFormat: (format: FormatType) => void;
   hide: boolean;
-  results: LemmaEntry[] | string;
   concordance: Concordance;
 }) {
   // TODO: move results here instead of passing them in
 
+  const results = React.useMemo(() => {
+    if (!concordance) {
+      return "Loading";
+    }
+    if (!searchTerm) {
+      return "Please type your search above";
+    }
+
+    if (searchTerm.match(/(G|H)\d+/i)) {
+      return concordance.searchByLemma("strong:" + searchTerm);
+    }
+
+    if (searchTerm.match(/strong:/i)) {
+      return concordance.searchByLemma(searchTerm);
+    }
+
+    if (searchTerm.match(/strongMorph\:|robinson\:/i)) {
+      return concordance.searchByMorph(searchTerm);
+    }
+
+    if (searchTerm.length < 3) {
+      return "Very short terms do not work well. Please use a longer term.";
+    }
+
+    return concordance.searchByText(searchTerm);
+  }, [searchTerm, concordance]);
+  
   return (
     <div className="flex flex-col overflow-hidden lg:w-1c lg:my-5 lg:mr-0 lg:m-5 mb-5 max-h-screen lg:rounded-lg shadow-lg lg:shrink-0 lg:max-h-full bg-slate-100 border border-gray-200">
       <div className="border-b border-gray-200 p-1">
@@ -208,9 +233,16 @@ export default function Study({
           <p className="text-lg italic text-center p-5 text-gray-800">
             {results}
           </p>
-        ) : (
+        ) 
+        : results.length > 100 ? (
+          <p className="text-lg italic text-center p-5 text-gray-800">
+            Too many results
+          </p>
+        ) 
+        : (
           results.map((r, i) => {
             return <Result key={i} result={r} concordance={concordance} />;
+            // return <div key={i}>{r.verse}</div>
           })
         )}
       </div>
@@ -403,7 +435,13 @@ export function Lemma({
       <div className="whitespace-nowrap text-sm">
         {!lemma.lemma.length && <>&nbsp;</>}
         {lemma.lemma.map((lemma) => (
-          <span className="ml-1" key={lemma} style={{ color: strongsColorWheel(lemma)}}>{lemma.replace("strong:", "")}</span>
+          <span
+            className="ml-1"
+            key={lemma}
+            style={{ color: strongsColorWheel(lemma) }}
+          >
+            {lemma.replace("strong:", "")}
+          </span>
         ))}
       </div>
       {/* TODO: the actual greek word? */}

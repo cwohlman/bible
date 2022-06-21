@@ -17,7 +17,7 @@ const App = () => {
 };
 
 const OneStudy = () => {
-  const [searchTerm, setSearchTerm] = React.useState("Jesus");
+  const [searchTerm, setSearchTerm] = React.useState("Rechab");
   const [concordance, setConcordance] = React.useState<Concordance>(null);
 
 
@@ -64,7 +64,7 @@ const OneStudy = () => {
   </Layout>
 }
 const ThreeStudies = () => {
-  const [searchTerm, setSearchTerm] = React.useState("Jesus");
+  const [searchTerm, setSearchTerm] = React.useState("Rechab");
   const [concordance, setConcordance] = React.useState<Concordance>(null);
 
 
@@ -79,37 +79,11 @@ const ThreeStudies = () => {
       });
   }, []);
 
-  const results = React.useMemo(() => {
-    if (!concordance) {
-      return "Loading";
-    }
-    if (!searchTerm) {
-      return "Please type your search above";
-    }
-
-    if (searchTerm.match(/(G|H)\d+/i)) {
-      return concordance.searchByLemma("strong:" + searchTerm);
-    }
-
-    if (searchTerm.match(/strong:/i)) {
-      return concordance.searchByLemma(searchTerm);
-    }
-
-    if (searchTerm.match(/strongMorph\:|robinson\:/i)) {
-      return concordance.searchByMorph(searchTerm);
-    }
-
-    if (searchTerm.length < 3) {
-      return "Very short terms do not work well. Please use a longer term.";
-    }
-
-    return concordance.searchByText(searchTerm);
-  }, [searchTerm, concordance]);
 
   return <Layout>
     <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
-    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
-    <Study searchTerm={searchTerm} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
+    <Study searchTerm={"Abinadab"} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
+    <Study searchTerm={"Wept"} setSearchTerm={setSearchTerm} searchType="lemma" results={results} concordance={concordance} />
   </Layout>
 }
 
