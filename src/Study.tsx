@@ -127,9 +127,9 @@ export default function Study({
 
     return concordance.searchByText(searchTerm);
   }, [searchTerm, concordance]);
-  
+
   return (
-    <div className="flex flex-col overflow-hidden lg:w-1c lg:my-5 lg:mr-0 lg:m-5 mb-5 max-h-screen lg:rounded-lg shadow-lg lg:shrink-0 lg:max-h-full bg-slate-100 border border-gray-200">
+    <div style={{maxHeight: "calc(100vh - 2.5rem)"}} className="flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200">
       <div className="border-b border-gray-200 p-1">
         <div className="flex items-center">
           <div className="grow">
@@ -234,9 +234,9 @@ export default function Study({
             {results}
           </p>
         ) 
-        : results.length > 100 ? (
+        : results.length > 300 ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            Too many results
+            {results.length} results found. Please narrow your search to fewer than 300 results.
           </p>
         ) 
         : (
@@ -391,8 +391,8 @@ export function Result({
         </div>
       </div>
       <div className="flex overflow-x-auto justify-items-stretch">
-        {context.map((lemma) => (
-          <Lemma lemma={lemma} highlight={result == lemma} className="" />
+        {context.map((lemma, i) => (
+          <Lemma key={i} lemma={lemma} highlight={result == lemma} className="" />
         ))}
       </div>
     </div>

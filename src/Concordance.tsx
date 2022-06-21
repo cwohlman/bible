@@ -25,8 +25,12 @@ export class Concordance {
           const morph = word.getAttribute("morph");
           const entry = {
             id: this.concordance.length,
-            lemma: typeof lemma === "string" ? lemma.split(" ") : [],
-            morph: typeof morph === "string" ? morph.split(" ") : [],
+            lemma: typeof lemma === "string" ? lemma.split(" ").filter((a, i, array) => {
+              return array.indexOf(a) == i;
+            }) : [],
+            morph: typeof morph === "string" ? morph.split(" ").filter((a, i, array) => {
+              return array.indexOf(a) == i;
+            }) : [],
             text: word.textContent || "",
             textNormalized: word.textContent?.toLocaleLowerCase() || "",
             verse: verse.id || "Invalid",

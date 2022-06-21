@@ -306,7 +306,7 @@ export function colorWheel(dark: boolean = true) {
     const existingColor = colorMappings[value];
     if (existingColor) return existingColor;
 
-    const newColor = allColors[nextColor++];
+    const newColor = allColors[nextColor++ % allColors.length];
     colorMappings[value] = newColor;
 
     return newColor;
