@@ -1,9 +1,10 @@
 import { Menu, RadioGroup, Transition } from "@headlessui/react";
 import {
-  ArrowDownIcon,
+  SortAscendingIcon,
   ArrowsExpandIcon,
   BookOpenIcon,
   ChevronDownIcon,
+  DocumentDownloadIcon,
   SearchIcon,
 } from "@heroicons/react/outline";
 import * as React from "react";
@@ -22,7 +23,7 @@ export type GroupByType =
   | "translation"
   | "strongs";
 
-export const searchTypeOptions = ["lemma", "words", "phrase"];
+export const searchTypeOptions = ["reference", "lemma", "words", "phrase"];
 export const groupByOptions = [
   "none",
   "testament",
@@ -33,9 +34,24 @@ export const groupByOptions = [
   "translation",
   "strongs",
 ];
-
 export const sortByOptions = ["bible", "alphabetical"];
-
+export const outputOptions = [
+  "visible",
+  "testament",
+  "book",
+  "chapter",
+  "verse",
+  "KJV",
+  "lemma",
+  "strongs",
+];
+export const formatOptions = [
+  "csv",
+  "json",
+  "list",
+  "pretty",
+];
+export const contextOptions = ["lemma", "7 words", "1 verse", "3 verses"];
 export default function Study({
   searchTerm,
   setSearchTerm,
@@ -82,11 +98,10 @@ export default function Study({
               <select
                 id="searchType"
                 name="searchType"
-                className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 sm:text-sm rounded-md"
+                className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-500 text-sm rounded-md capitalize"
+                defaultValue="lemma"
               >
-                <option>Lemma</option>
-                <option>Words</option>
-                <option>Phrase</option>
+                {searchTypeOptions.map(option => <option>{option}</option>)}
               </select>
             </div>
           </div>
@@ -137,7 +152,7 @@ export default function Study({
               type="button"
               className="inline-block ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              <ArrowDownIcon className="w-4 h-4" />
+              <SortAscendingIcon className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -150,7 +165,107 @@ export default function Study({
               return <div key={i}>{r.lemma}</div>;
             })}
       </div>
-      <div className="border-t border-gray-200 p-5">Footer</div>
+      <div className="border-t border-gray-200">
+        <div className="flex justify-between p-1 pb-0">
+          <div className="flex items-center">
+            <span className="text-xs font-medium text-gray-700">Show</span>
+
+            <button
+              type="button"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Lemma
+            </button>
+            <button
+              type="button"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              KJV
+            </button>
+            <button
+              type="button"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Strongs
+            </button>
+            <button
+              type="button"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Morph
+            </button>
+            <button
+              type="button"
+              className="inline-block ml-1 p-1 border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Interlinear
+            </button>
+          </div>
+          <div className="flex items-baseline">
+            <label
+              htmlFor="context"
+              className="block ml-1 text-xs font-medium text-gray-700"
+            >
+              Context
+            </label>
+            <select
+              id="context"
+              name="context"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              defaultValue="book"
+            >
+              {contextOptions.map((value) => (
+                <option>{value}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="p-1 flex gap-2 justify-between">
+          <div className="flex items-baseline">
+            <label
+              htmlFor="output"
+              className="block text-xs font-medium text-gray-700"
+            >
+              Output
+            </label>
+            <select
+              id="output"
+              name="output"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              defaultValue="KJV"
+            >
+              {outputOptions.map((value) => (
+                <option>{value}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-baseline">
+            <label
+              htmlFor="format"
+              className="block text-xs font-medium text-gray-700"
+            >
+              Format
+            </label>
+            <select
+              id="format"
+              name="format"
+              className="block ml-1 pl-3 pr-10 py-1 capitalize text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
+              defaultValue="KJV"
+            >
+              {formatOptions.map((value) => (
+                <option>{value}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded shadow-sm text-indigo-900 bg-green-100 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Export
+              <DocumentDownloadIcon className="w-4 h-4 inline" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
