@@ -13,6 +13,7 @@ export type LemmaEntry = {
   reference: string;
   position: number;
   translation: string;
+  spaceAfter: boolean;
   words: string[];
   lemma: string[];
   morph: string[];
@@ -41,7 +42,8 @@ export type SearchResults = {
   search: string;
   searchType: SearchType;
 
-  time: number;
+  startTime: number;
+  endTime: number;
 
   results: SearchResult[];
 };
@@ -94,12 +96,15 @@ export class Concordance {
     return {
       search: input,
       searchType: "words",
-      time: endTime - startTime,
+      startTime,
+      endTime,
       results,
     };
   }
 
   currentVerse: VerseEntry;
+  previousLemma: LemmaEntry;
+
   parseNode(child: Node) {
     if (child instanceof Element) {
       if (child.tagName === "verse") {
@@ -135,6 +140,8 @@ export class Concordance {
         throw new Error("Unrecognized node:" + child.tagName);
       }
     } else if (child instanceof Text) {
+      if (child.wholeText == " ")
+        this.previousLemma && (this.previousLemma.spaceAfter = true);
       if (child.wholeText.trim() != "")
         this.addLemma(this.currentVerse, child.wholeText, null, null);
     } else {
@@ -172,12 +179,14 @@ export class Concordance {
       reference: verse.reference,
       position: verse.words.length,
       translation,
+      spaceAfter: false,
       words,
       lemma: this.parseLemma(lemma),
       morph: this.parseMorphCodes(morph),
     };
 
     verse.words.push(entry);
+    this.previousLemma = entry;
     this.lemmaList.push(entry);
 
     const normalizedTranslation = translation.toLocaleLowerCase();
@@ -508,8 +517,8 @@ export class Search {
 
     if (input.includes("*"))
       return new WildcardSearch(input.toLocaleLowerCase(), index);
-    if (/^h\d+$/i.test(input)) return this.parseStrongs(input, index);
-    if (/^g\d+$/i.test(input)) return this.parseStrongs(input, index);
+    if (/^H\d+$/.test(input)) return this.parseStrongs(input, index);
+    if (/^G\d+$/.test(input)) return this.parseStrongs(input, index);
     if (/^[a-z]+\.\d+(\.\d+)?$/i.test(input))
       return this.parseReference(input, index);
 

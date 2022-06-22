@@ -142,7 +142,7 @@ export default function Study({
 
   const results =
     "message" in searchResults ? searchResults.message : searchResults.results;
-  const timing = "message" in searchResults ? null : searchResults.time;
+  const timing = "message" in searchResults ? null : searchResults;
 
   const debounceTimeout = React.useRef<number>();
 
@@ -151,21 +151,38 @@ export default function Study({
       draft.hide = !draft.hide;
     });
 
+  const truncateLength = study.interlinear ? 1000 : 3000;
   const displayResults = React.useMemo(
     () =>
       typeof results == "string" ? (
         <p className="text-lg italic text-center p-5 text-gray-800">
           {results}
         </p>
+      ) : "search" in searchResults && searchResults.search != searchTerm ? (
+        <p className="text-lg italic text-center p-5 text-gray-800">
+          Loading...
+        </p>
       ) : (
-        concordance &&
-        results.slice(0, 300).map((r, i) => {
-          return <Result key={i} result={r} concordance={concordance} />;
+        results.slice(0, truncateLength).map((r, i) => {
+          return (
+            <Result
+              key={i}
+              result={r}
+              concordance={concordance as Concordance}
+              interlinear={study.interlinear}
+              visible={study.visible}
+            />
+          );
           // return <div key={i}>{r.verse}</div>
         })
       ),
-    [results]
+    [searchTerm, searchResults, results, study.interlinear, study.visible]
   );
+
+  const [renderTime, setRenderTime] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    setRenderTime(Date.now());
+  }, [results]);
 
   return (
     <div
@@ -213,7 +230,7 @@ export default function Study({
                       study.searchTerm = target.value;
                       return study;
                     });
-                  }, 300) as any;
+                  }, 1000) as any;
                 }}
                 className="focus:ring-indigo-500 focus:border-indigo-500 block w-full h-10 pl-14 pr-32 sm:text-sm border-gray-300 rounded-md"
                 placeholder="Search the bible"
@@ -229,10 +246,10 @@ export default function Study({
                       useGrouping: true,
                     })} results`}</span>
                   ) : null}
-                  {typeof timing == "number" ? (
+                  {timing ? (
                     <span
-                      className={timing > 100 ? "text-red-800 bold" : ""}
-                    >{` in ${timing}ms`}</span>
+                      className={renderTime - timing.startTime > 100 ? "text-red-800 bold" : ""}
+                    >{` in ${renderTime - timing.startTime}ms`}</span>
                   ) : null}
                 </div>
                 <label htmlFor="searchType" className="sr-only">
@@ -276,7 +293,6 @@ export default function Study({
               id="groupBy"
               name="groupBy"
               className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
-              defaultValue="book"
               value={study.groupBy}
             >
               {groupByOptions.map((value) => (
@@ -310,7 +326,6 @@ export default function Study({
               id="sortBy"
               name="sortBy"
               className="block ml-1 pl-3 pr-10 py-1 capitalize border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
-              defaultValue="book"
               value={study.sortBy}
             >
               {sortByOptions.map((value) => (
@@ -355,7 +370,16 @@ export default function Study({
             </button>
             <button
               type="button"
-              className="inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm bg-white hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className={`inline-block ml-1 p-1 border border-gray-300 text-xs rounded shadow-sm ${
+                study.interlinear
+                  ? "font-bold bg-blue-700 hover:bg-blue-900 text-white"
+                  : "bg-white hover:bg-blue-100"
+              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              onClick={(e) => {
+                update((draft) => {
+                  draft.interlinear = !draft.interlinear;
+                });
+              }}
             >
               Interlinear
             </button>
@@ -389,9 +413,9 @@ export default function Study({
         ) : (
           displayResults
         )}
-        {results.length > 300 ? (
+        {results.length > truncateLength ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Only the first 300 results are
+            {results.length} results found. Only the first {truncateLength} results are
             shown.
           </p>
         ) : null}
@@ -401,9 +425,10 @@ export default function Study({
           </p>
         ) : null}
         {timing ? (
-          <p className="text-xs italic text-center p-2 text-gray-700">
-            Search time {timing}ms
-          </p>
+          <div className="text-xs italic text-center p-2 text-gray-700">
+            <p>Search time {timing.endTime - timing.startTime}ms</p>
+            <p>Render time {renderTime - timing.endTime}ms</p>
+          </div>
         ) : null}
       </div>
       <div className="border-t border-gray-200">
@@ -419,7 +444,6 @@ export default function Study({
               id="output"
               name="output"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
-              defaultValue="KJV"
               value={study.output}
             >
               {outputOptions.map((value) => (
@@ -445,7 +469,6 @@ export default function Study({
               id="format"
               name="format"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
-              defaultValue="KJV"
               value={study.outputFormat}
             >
               {formatOptions.map((value) => (
@@ -491,13 +514,32 @@ export default function Study({
 
 export function Result({
   result,
+  visible,
+  interlinear,
   concordance,
 }: {
   result: SearchResult;
+  visible: {
+    [k in VisibleType]: boolean;
+  };
+  interlinear: boolean;
   concordance: Concordance;
 }) {
   const context = React.useMemo(
-    () => concordance?.getLemmasById(result.id - 2, result.id + 2),
+    () => {
+      let firstId = result.match[0].id;
+      let lastId = result.match[result.match.length - 1].id;
+
+      if (lastId < firstId)
+        [firstId, lastId] = [lastId, firstId];
+
+      if (lastId - firstId <= 2)
+        // returns up to 7 lemmas
+        return concordance?.getLemmasById(firstId - 2, lastId + 2)
+      
+      // returns only matching lemas and what's in between them
+      return concordance?.getLemmasById(firstId, lastId)
+    },
     [result.id - 2, result.id + 2]
   );
   return (
@@ -522,16 +564,31 @@ export function Result({
           </div>
         </div>
       </div>
-      <div className="flex overflow-x-auto justify-items-stretch">
-        {context.map((lemma, i) => (
-          <Lemma
-            key={i}
-            lemma={lemma}
-            highlight={!!result.match.find((a) => a.id == lemma.id)}
-            className=""
-          />
-        ))}
-      </div>
+      {interlinear ? (
+        <div className="flex overflow-x-auto justify-items-stretch">
+          {context.map((lemma, i) => (
+            <Lemma
+              key={i}
+              lemma={lemma}
+              highlight={!!result.match.find((a) => a.id == lemma.id)}
+              className=""
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="px-3 text-center">
+          {context.map((lemma, i) => (
+            <span
+              className={
+                !!result.match.find((a) => a.id == lemma.id) ? "font-bold" : "italic"
+              }
+            >
+              {lemma.translation}
+              {lemma.spaceAfter ? " " : ""}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
