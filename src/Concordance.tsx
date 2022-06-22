@@ -1,5 +1,6 @@
 import { parse } from "./parse";
 import MiniSearch from 'minisearch'
+import { SearchType } from "./Study";
 
 export type LemmaEntry = {
   id: number;
@@ -14,6 +15,22 @@ export type VerseEntry = {
   reference: string;
   text: string;
   words: LemmaEntry[];
+}
+
+export type SearchResult = {
+  id: number;
+  reference: string;
+  relevence: number;
+  match: LemmaEntry[];
+}
+
+export type SearchResults = {
+  search: string,
+  searchType: SearchType,
+  
+  time: number,
+
+  results: SearchResult[],
 }
 
 export class Concordance {
@@ -185,6 +202,26 @@ export class Concordance {
 
     return this.searchByText(text);
   }
+
+  // Search types:
+  // all
+  // any
+  // phrase
+  // literal (char for char, case sensitive, no normalization, no strongs numbers, no morphology codes, matches partial words, spaces, etc.)
+  // advanced
+
+  // Search:
+  // each term can be:
+  // strongs
+  // morph
+  // text (with optional wildcards)
+  // lemma expression: [term term term] -> every term must match a single lemma (e.g. put both strongs and translation)
+  // phrase expression: "term term term" -> every term must match in order (also no gaps, ignores punctuation)
+  // and expression: (term term term) or all:term -> every term must match in any order
+  // not expression !term or not:term -> term must not match
+  // fuzzy expression ~term or fuzzy:term -> term may match fuzzy
+  // or expression: |term or any:term -> at least one term must match only applies to lemma -and- and
+  // scope expression: ^terms or #terms -> sub-term may match within 2 verses, or a chapter only applicable for and, or, and phrase (by default all terms must match within a single verse)
 
   searchByText(text: string) {
     const normalizedText = text.toLocaleLowerCase(); // todo convert to regex and make sure that the text is bounded by word separators
