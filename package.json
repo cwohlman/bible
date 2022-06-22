@@ -25,9 +25,14 @@
     "flexsearch": "^0.7.21",
     "immer": "^9.0.15",
     "minisearch": "^5.0.0",
+    "preact": "^10.8.1",
     "random-seed": "^0.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "use-immer": "^0.7.0"
+  },
+  "alias": {
+    "react": "preact/compat",
+    "react-dom": "preact/compat"
   }
 }
