@@ -562,7 +562,7 @@ export function Result({
               {result.reference}
             </label>
           </div>
-          {result.match.map((match) => (
+          {!interlinear && result.match.map((match) => (
             <>
               <div className="text-sm font-bold">
                 <span className="ml-2">{match.translation}</span>
