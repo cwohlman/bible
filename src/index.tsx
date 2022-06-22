@@ -74,6 +74,7 @@ const App = () => {
     <Layout>
       {studies.map((study) => (
         <Study
+          key={study.id}
           study={study}
           update={(m) =>
             setStudies((all) => {

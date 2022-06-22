@@ -2,7 +2,11 @@ import { parse } from "./parse";
 import MiniSearch from "minisearch";
 import { SearchType } from "./Study";
 import * as _ from "lazy.js";
-import { FilterIcon, TerminalIcon } from "@heroicons/react/outline";
+
+const a: LemmaEntry[] = null as any;
+const lazy = _(a);
+
+type LazySearch = typeof lazy;
 
 export type LemmaEntry = {
   id: number;
@@ -25,6 +29,12 @@ export type SearchResult = {
   reference: string;
   relevence: number;
   match: LemmaEntry[];
+};
+
+export type SearchError = {
+  stack: string[];
+  input: string;
+  message: string;
 };
 
 export type SearchResults = {
@@ -71,6 +81,22 @@ export class Concordance {
       this.verseReferenceList = Object.keys(this.verseReferenceIndex);
       this.wordList = Object.keys(this.wordIndex);
     });
+  }
+
+  search(input: string): SearchResults | SearchError {
+    const startTime = Date.now();
+    const search = Search.parse(input, this);
+    const results = search.search();
+    const endTime = Date.now();
+
+    if ("message" in results) return results;
+
+    return {
+      search: input,
+      searchType: "words",
+      time: endTime - startTime,
+      results,
+    };
   }
 
   currentVerse: VerseEntry;
@@ -298,16 +324,19 @@ export class Search {
   constructor(public concordance: Concordance) {}
 
   test: (entry: LemmaEntry) => boolean;
+  negate?: () => Search;
 
   filter: (entry: LemmaEntry[]) => LemmaEntry[] = (entries) =>
     entries.filter(this.test);
 
-  prepass = () => _(this.concordance.lemmaList);
+  prepass: () => LazySearch | SearchError = () => _(this.concordance.lemmaList);
 
-  prepassFilter = (a: LemmaEntry[]) => this.filter(a);
+  search(): SearchResult[] | SearchError {
+    const results = this.prepass();
 
-  search(): SearchResult[] {
-    return this.prepass()
+    if ("message" in results) return results;
+
+    return results
       .map((a) => this.filter([a]))
       .filter(any)
       .map((match) => ({
@@ -396,28 +425,26 @@ export class Search {
       }
 
       // TODO: it isn't really valid to put these inside a word
-      if (next == "!") {
-        negateNext = true;
-      }
-      if (next == "|") {
-        anyNext = true;
-      }
-      if (next == "&") {
-        anyNext = false;
-      }
-      if (next == ":") {
-        parsePrefix();
-      }
 
       if (/\s/.test(next)) {
         closeWord();
         continue;
       }
-
-      currentWord += next;
+      if (next == "!") {
+        negateNext = true;
+      } else if (next == "|") {
+        anyNext = true;
+      } else if (next == "&") {
+        anyNext = false;
+      } else if (next == ":") {
+        parsePrefix();
+      } else {
+        currentWord += next;
+      }
       i++;
     }
 
+    closeWord();
     return [results, getRemainder()];
 
     function getRemainder(includeCurrentChar: boolean = false): string {
@@ -440,7 +467,7 @@ export class Search {
 
     function closeWord() {
       if (currentWord) {
-        pushChild(Search.parseWord(currentWord, index));
+        pushChild(Search.parseWord(currentWord, index, prefix));
         return true;
       } else {
         input = getRemainder();
@@ -475,14 +502,16 @@ export class Search {
       prefixes.includes("strongMorph")
     )
       return this.parseMorph(input, index);
-    if (prefixes.includes("in"))
-      return this.parseReference(input, index);
+    if (prefixes.includes("in")) return this.parseReference(input, index);
 
+    if (input.includes("*"))
+      return new WildcardSearch(input.toLocaleLowerCase(), index);
     if (/^h\d+$/i.test(input)) return this.parseStrongs(input, index);
     if (/^g\d+$/i.test(input)) return this.parseStrongs(input, index);
-    if (/^[a-z]+\.\d+(\.\d+)?$/i.test(input)) return this.parseReference(input, index);
+    if (/^[a-z]+\.\d+(\.\d+)?$/i.test(input))
+      return this.parseReference(input, index);
 
-    return new WordSearch(input, index);
+    return new WordSearch(input.toLocaleLowerCase(), index);
   }
 
   static parseReference(input: string, index: Concordance): Search {
@@ -508,14 +537,12 @@ export function any<T>(a: T[]) {
 export class NotSearch extends Search {
   constructor(public term: Search, concordance: Concordance) {
     super(concordance);
+
+    this.test = (entry: LemmaEntry) => !this.term.test(entry);
+
+    this.filter = (entries: LemmaEntry[]) =>
+      entries.every(this.test) ? entries : [];
   }
-
-  test = (entry: LemmaEntry) => !this.term.test(entry);
-
-  filter = (entries: LemmaEntry[]) =>
-    this.term.filter(entries).length ? [] : entries;
-
-  prepassFilter = this.term.prepassFilter;
 }
 
 export class WordSearch extends Search {
@@ -526,8 +553,59 @@ export class WordSearch extends Search {
   test = (entry: LemmaEntry) => entry.words.indexOf(this.term) != -1;
   prepass = () => _(this.concordance.wordIndex[this.term]);
 
-  // prepass is safe
-  prepassFilter = (a) => a;
+  negate = () => {
+    const result = new Search(this.concordance);
+
+    result.test = (entry: LemmaEntry) => !this.test(entry);
+    result.filter = (entries: LemmaEntry[]) => entries.filter(result.test);
+    result.prepass = _(this.concordance.lemmaList).filter(result.test) as any;
+
+    return result;
+  };
+
+  consumeFragment(fragment: string[]) {
+    if (fragment[0] == this.term) {
+      return fragment.slice(1);
+    }
+
+    return false;
+  }
+  getFragment(entry: LemmaEntry) {
+    let i = 0;
+    while (i < entry.words.length) {
+      if (entry.words[i] == this.term) {
+        return entry.words.slice(i + 1);
+      }
+      i++;
+    }
+
+    return false;
+  }
+}
+
+export class WildcardSearch extends Search {
+  regex: RegExp;
+
+  constructor(public term: string, concordance: Concordance) {
+    super(concordance);
+
+    this.regex = new RegExp(
+      "^" +
+        term
+          .split("")
+          .map((a) => {
+            if (a == "*") return ".*";
+            if (/[a-z0-9]/.test(a)) return a;
+            return "";
+          })
+          .join("") +
+        "$"
+    );
+  }
+
+  match = (word: string) => this.regex.test(word);
+  test = (entry: LemmaEntry) => entry.words.some(this.match);
+  // prepass = () => _(this.concordance.wordList).filter(this.match).map(a => this.concordance.wordIndex[a]).flatten().uniq() as any;
 
   consumeFragment(fragment: string[]) {
     if (fragment[0] == this.term) {
@@ -575,8 +653,6 @@ export class StrongsSearch extends Search {
 
   test = (entry: LemmaEntry) => entry.lemma.indexOf(this.term) != -1;
   prepass = () => _(this.concordance.lemmaIndex[this.term]);
-  // prepass is safe
-  prepassFilter = (a) => a;
 }
 
 export class MorphSearch extends Search {
@@ -586,8 +662,6 @@ export class MorphSearch extends Search {
 
   test = (entry: LemmaEntry) => entry.morph.indexOf(this.term) != -1;
   prepass = () => _(this.concordance.morphIndex[this.term]);
-  // prepass is safe
-  prepassFilter = (a) => a;
 }
 
 export class ReferenceSearch extends Search {
@@ -601,8 +675,6 @@ export class ReferenceSearch extends Search {
     _(this.concordance.verseReferenceList)
       .filter((a) => a.startsWith(this.term))
       .map((a) => this.concordance.verseReferenceIndex[a].words[0]) as any;
-  // prepass is safe
-  prepassFilter = (a) => a;
 }
 
 export class MultiSearch extends Search {
@@ -619,10 +691,20 @@ export class MultiSearch extends Search {
       let i = 1;
       let results = this.terms[0].prepass();
 
+      if ("message" in results) {
+        return results;
+      }
+
       type ResultType = typeof results;
 
       while (i < this.terms.length) {
-        results = results.concat(this.terms[i].prepass().toArray());
+        const termResults = this.terms[i].prepass();
+
+        if ("message" in termResults) {
+          return termResults;
+        }
+
+        results = results.concat(termResults.toArray());
         i++;
       }
 
@@ -631,18 +713,21 @@ export class MultiSearch extends Search {
 
     return this.terms[0].prepass();
   };
-  prepassFilter = this.terms.length == 1 ? this.terms[0].prepassFilter : a => this.filter(a);
 
   expandToVerse = true;
 
-  search(): SearchResult[] {
+  search() {
     if (this.terms.length == 1) return this.terms[0].search();
 
     let prepassResults = this.prepass();
 
+    if ("message" in prepassResults) {
+      return prepassResults;
+    }
+
     const searchSets = this.expandToVerse
       ? prepassResults
-          .uniq("id")
+          .uniq("reference")
           .map((a) => this.concordance.getVerse(a.reference))
       : prepassResults.map((a) => [a]);
 
@@ -679,6 +764,11 @@ export class AndSearch extends MultiSearch {
     const results: Set<LemmaEntry> = new Set();
 
     for (const term of this.terms) {
+      if (term instanceof NotSearch) {
+        if (entry.some((e) => term.term.test(e))) return [];
+        else continue;
+      }
+
       var match = term.filter(entry);
       if (!match.length && !this.any) return [];
 
@@ -781,18 +871,15 @@ export class PhraseSearch extends MultiSearch {
     return !entry.translation.match(/[a-z]/i);
   };
 
-  search(): SearchResult[] {
+  search(): SearchResult[] | SearchError {
+    if (this.terms.length == 1) {
+      return this.terms[0].search();
+    }
+
     let prepassResults = this.prepass();
 
-    if (this.terms.length == 1) {
-      return prepassResults
-        .map((match) => ({
-          id: match.id,
-          match: [match],
-          reference: match.reference,
-          relevence: 1,
-        }))
-        .toArray();
+    if ("message" in prepassResults) {
+      return prepassResults;
     }
 
     const searchSets = this.expandToVerse

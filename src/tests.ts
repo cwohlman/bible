@@ -21,7 +21,11 @@ function test(
     name,
     execute: () => {
       try {
+        const startTime = Date.now();
         fn();
+        const endTime = Date.now();
+
+        console.log(name, endTime - startTime);
         return true;
       } catch (error) {
         console.error(error);
@@ -73,16 +77,21 @@ export const tests = [
     ).to.not.be.empty;
   }),
   test("Concordance - Not search", () => {
-    expect(
-      new AndSearch(
-        [
-          new NotSearch(new WordSearch("beginning", index), index),
-          new WordSearch("god", index),
-        ],
-        false,
-        index
-      ).search()[0].reference
-    ).to.not.equal("Gen.1.1");
+    const search = new AndSearch(
+      [
+        new NotSearch(new WordSearch("beginning", index), index),
+        new WordSearch("god", index),
+      ],
+      false,
+      index
+    );
+
+    let results;
+    for (var i = 0; i < 100; i++) {
+      results = search.search();
+    }
+
+    expect(results[0].reference).to.not.equal("Gen.1.1");
   }),
   test("Concordance - Phrase search", () => {
     expect(
@@ -194,9 +203,7 @@ export const tests = [
       false,
       index
     ).search();
-    expect(
-      results[0].reference
-    ).to.equal("Gen.1.31");
+    expect(results[0].reference).to.equal("Gen.1.31");
     expect(results).to.have.length(1);
   }),
   test("Concordance - parsed Complex search", () => {
@@ -205,10 +212,35 @@ export const tests = [
 
     expect(results).to.have.length(20);
   }),
-  test("Concordance - parsed Complex search with reference", () => {
-    const search = Search.parse('Gen.1.31 "[and H430] any:(said made saw)"', index);
+  test("Concordance - parsed morph", () => {
+    const search = Search.parse('[H0853 morph:TH8804]', index);
     const results = search.search();
 
     expect(results).to.have.length(1);
+  }),
+  test("Concordance - parsed Complex search with reference", () => {
+    const search = Search.parse(
+      'Gen.1.31 "[and H430] any:(said made saw)"',
+      index
+    );
+    const results = search.search();
+
+    expect(results).to.have.length(1);
+  }),
+  test("Concordance - parsed wildcard", () => {
+    const search = Search.parse("Gen.1.1 beg*", index);
+    const results = search.search();
+
+    expect(results).to.have.length(1);
+  }),
+  test("Concordance - everything", () => {
+    const search = Search.parse("*", index);
+
+    let results;
+    for (var i = 0; i < 100; i++) {
+      results = search.search();
+    }
+
+    // expect(results).to.have.length(370);
   }),
 ];

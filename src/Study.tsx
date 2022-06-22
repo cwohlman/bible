@@ -14,7 +14,7 @@ import {
 import * as React from "react";
 import { Fragment } from "react";
 import { classNames } from "./classNames";
-import { Concordance, LemmaEntry } from "./Concordance";
+import { Concordance, LemmaEntry, SearchResult } from "./Concordance";
 import { colorWheel } from "./colors";
 
 export const strongsColorWheel = colorWheel();
@@ -110,28 +110,18 @@ export default function Study({
   // TODO: move results here instead of passing them in
   const { searchTerm, hide: hidden } = study;
 
-  const results = React.useMemo(() => {
+  const searchResults = React.useMemo(() => {
     if (!concordance) {
-      return "Loading";
+      return { message: "Loading" };
     }
     if (!searchTerm) {
-      return "Please type your search above";
+      return { message: "Please type your search above" };
     }
 
-    if (searchTerm.match(/(G|H)\d+/i)) {
-      return concordance.searchByLemma("strong:" + searchTerm);
-    }
-
-    if (searchTerm.match(/strong:/i)) {
-      return concordance.searchByLemma(searchTerm);
-    }
-
-    if (searchTerm.match(/strongMorph\:|robinson\:/i)) {
-      return concordance.searchByMorph(searchTerm);
-    }
-
-    return concordance.searchByText(searchTerm);
+    return concordance.search(searchTerm);
   }, [searchTerm, concordance]);
+  const results = "message" in searchResults ? searchResults.message : searchResults.results;
+  const timing = "message" in searchResults ? null : searchResults.time;
 
   const debounceTimeout = React.useRef<number>();
 
@@ -148,7 +138,17 @@ export default function Study({
             <label htmlFor="searchTerm" className="sr-only">
               Search
             </label>
-            <div className="relative rounded-md shadow-sm">
+            <form className="relative rounded-md shadow-sm" onSubmit={e => {
+                e.preventDefault(); 
+                if (debounceTimeout.current) {
+                  clearTimeout(debounceTimeout.current);
+                }
+                const data = new FormData(e.currentTarget);
+                update((study) => {
+                  study.searchTerm = data.get("searchTerm")?.toString() || "";
+                  return study;
+                });
+              }}>
               <button className="absolute inset-y-px left-px px-3 flex focus:border-2 focus:border-indigo-500 focus:z-10 hover:bg-blue-100 hover:border-blue-200 hover:z-1 border-r border-gray-200 rounded-l-md items-center pointer-events text-gray-700">
                 <BookOpenIcon className="w-5 h-5" />
               </button>
@@ -189,11 +189,11 @@ export default function Study({
                   value={study.searchType}
                 >
                   {searchTypeOptions.map((option) => (
-                    <option>{option}</option>
+                    <option key={option}>{option}</option>
                   ))}
                 </select>
               </div>
-            </div>
+            </form>
           </div>
           {/* <div>
           Put a plus dropdown here with:
@@ -219,7 +219,7 @@ export default function Study({
               value={study.groupBy}
             >
               {groupByOptions.map((value) => (
-                <option>{value}</option>
+                <option key={value}>{value}</option>
               ))}
             </select>
             <button
@@ -253,7 +253,7 @@ export default function Study({
               value={study.sortBy}
             >
               {sortByOptions.map((value) => (
-                <option>{value}</option>
+                <option key={value}>{value}</option>
               ))}
             </select>
             <button
@@ -311,7 +311,7 @@ export default function Study({
               value={study.context}
             >
               {contextOptions.map((value) => (
-                <option>{value}</option>
+                <option key={value}>{value}</option>
               ))}
             </select>
           </div>
@@ -342,6 +342,9 @@ export default function Study({
             No results found.
           </p>
         ) : null}
+        {
+          timing ? <p className="text-xs italic text-center p-2 text-gray-700">Search time {timing}ms</p> : null
+        }
       </div>
       <div className="border-t border-gray-200">
         <div className="p-1 flex flex-wrap gap-2 justify-between">
@@ -360,7 +363,7 @@ export default function Study({
               value={study.output}
             >
               {outputOptions.map((value) => (
-                <option>{value}</option>
+                <option key={value}>{value}</option>
               ))}
             </select>
             <button
@@ -386,7 +389,7 @@ export default function Study({
               value={study.outputFormat}
             >
               {formatOptions.map((value) => (
-                <option>{value}</option>
+                <option key={value}>{value}</option>
               ))}
             </select>
             <button
@@ -423,7 +426,7 @@ export function Result({
   result,
   concordance,
 }: {
-  result: LemmaEntry;
+  result: SearchResult;
   concordance: Concordance;
 }) {
   const context = React.useMemo(
@@ -457,7 +460,7 @@ export function Result({
           <Lemma
             key={i}
             lemma={lemma}
-            highlight={result == lemma}
+            highlight={!! result.match.find(a => a.id == lemma.id)}
             className=""
           />
         ))}
@@ -501,10 +504,10 @@ export function Lemma({
       </div>
       <div className="whitespace-nowrap text-sm">
         {!lemma.lemma.length && <>&nbsp;</>}
-        {lemma.lemma.map((lemma) => (
+        {lemma.lemma.map((lemma, i) => (
           <span
             className="ml-1"
-            key={lemma}
+            key={i}
             style={{ color: strongsColorWheel(lemma) }}
           >
             {lemma.replace("strong:", "")}
