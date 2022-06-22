@@ -530,8 +530,8 @@ export function Result({
   concordance: Concordance;
 }) {
   const context = React.useMemo(() => {
-    let firstId = result.match[0].id;
-    let lastId = result.match[result.match.length - 1].id;
+    let firstId = result.match.reduce((m, a) => Math.min(m, a.id), Infinity)
+    let lastId = result.match.reduce((m, a) => Math.max(m, a.id), 0)
 
     if (lastId < firstId) [firstId, lastId] = [lastId, firstId];
 
