@@ -8,6 +8,8 @@
     "build": "parcel build src/index.html"
   },
   "devDependencies": {
+    "@parcel/packager-raw-url": "2.6.1",
+    "@parcel/transformer-webmanifest": "2.6.1",
     "@tailwindcss/forms": "^0.5.2",
     "@types/chai": "^4.3.1",
     "@types/flexsearch": "^0.7.3",
