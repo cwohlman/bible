@@ -248,7 +248,11 @@ export default function Study({
                   ) : null}
                   {timing ? (
                     <span
-                      className={renderTime - timing.startTime > 100 ? "text-red-800 bold" : ""}
+                      className={
+                        renderTime - timing.startTime > 100
+                          ? "text-red-800 bold"
+                          : ""
+                      }
                     >{` in ${renderTime - timing.startTime}ms`}</span>
                   ) : null}
                 </div>
@@ -415,8 +419,8 @@ export default function Study({
         )}
         {results.length > truncateLength ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Only the first {truncateLength} results are
-            shown.
+            {results.length} results found. Only the first {truncateLength}{" "}
+            results are shown.
           </p>
         ) : null}
         {results.length < 1 ? (
@@ -525,23 +529,19 @@ export function Result({
   interlinear: boolean;
   concordance: Concordance;
 }) {
-  const context = React.useMemo(
-    () => {
-      let firstId = result.match[0].id;
-      let lastId = result.match[result.match.length - 1].id;
+  const context = React.useMemo(() => {
+    let firstId = result.match[0].id;
+    let lastId = result.match[result.match.length - 1].id;
 
-      if (lastId < firstId)
-        [firstId, lastId] = [lastId, firstId];
+    if (lastId < firstId) [firstId, lastId] = [lastId, firstId];
 
-      if (lastId - firstId <= 2)
-        // returns up to 7 lemmas
-        return concordance?.getLemmasById(firstId - 2, lastId + 2)
-      
-      // returns only matching lemas and what's in between them
-      return concordance?.getLemmasById(firstId, lastId)
-    },
-    [result.id - 2, result.id + 2]
-  );
+    if (lastId - firstId <= 2)
+      // returns up to 7 lemmas
+      return concordance?.getLemmasById(firstId - 2, lastId + 2);
+
+    // returns only matching lemas and what's in between them
+    return concordance?.getLemmasById(firstId, lastId);
+  }, [result.id - 2, result.id + 2]);
   return (
     <div className="even:bg-gray-50 odd:bg-gray-100 pb-3">
       <div className="">
@@ -562,6 +562,23 @@ export function Result({
               {result.reference}
             </label>
           </div>
+          {result.match.map((match) => (
+            <>
+              <div className="text-sm font-bold">
+                <span className="ml-2">{match.translation}</span>
+              </div>
+              <div className="text-sm">
+                {match.lemma.map((lemma) => (
+                  <span className="ml-2" style={{ color: strongsColorWheel(lemma) }}>{lemma}</span>
+                ))}
+              </div>
+              <div className="text-sm italic">
+                {match.morph.map((morph) => (
+                  <span className="ml-2" style={{ color: strongsColorWheel(morph) }}>{morph}</span>
+                ))}
+              </div>
+            </>
+          ))}
         </div>
       </div>
       {interlinear ? (
@@ -580,7 +597,9 @@ export function Result({
           {context.map((lemma, i) => (
             <span
               className={
-                !!result.match.find((a) => a.id == lemma.id) ? "font-bold" : "italic"
+                !!result.match.find((a) => a.id == lemma.id)
+                  ? "font-bold"
+                  : "italic"
               }
             >
               {lemma.translation}
