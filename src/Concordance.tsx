@@ -224,7 +224,7 @@ export class Concordance {
   }
 
   normalizeLemma(lemma: string): string {
-    return lemma.replace("strong:H0", "H").replace("strong:", "");
+    return lemma.replace("strong:", "").replace("H0", "H");
   }
   normalizeMorph(lemma: string): string {
     return lemma.replace("strongMorph:", "").replace("robinson:", "");
@@ -476,9 +476,11 @@ export class Search {
     }
 
     function pushChild(child: Search, remainder: string = input.slice(i + 1)) {
-      if (negateNext) child = new NotSearch(child, index);
+      if (! (child instanceof MultiSearch) || child.terms.length) {
+        if (negateNext) child = new NotSearch(child, index);
 
-      results.push(child);
+        results.push(child);
+      }
       input = remainder;
       anyNext = false;
       negateNext = false;
@@ -684,6 +686,8 @@ export class MultiSearch extends Search {
     concordance: Concordance
   ) {
     super(concordance);
+
+    // if (! terms.length) throw new Error("No terms!");
   }
 
   prepass = () => {
@@ -711,12 +715,45 @@ export class MultiSearch extends Search {
       return results.uniq() as ResultType;
     }
 
-    return this.terms[0].prepass();
+    return this.choosePrepass().prepass();
   };
+
+  choosePrepass(): Search {
+    return [...this.terms].sort((a, b) => {
+      return this.scorePrepass(a) - this.scorePrepass(b);
+    })[0];
+  }
+
+  /**
+   * 
+   * @param candidate the candidate to score
+   * @returns a number, indicating how many results are estimated for the candidate
+   */
+  scorePrepass(candidate: Search): number {
+    if (candidate instanceof MultiSearch) return this.scorePrepass(candidate.choosePrepass())
+    if (candidate instanceof NotSearch) return 400_000 - 1000 // returns most if not all entries
+    if (candidate instanceof WildcardSearch) return 400_000 / candidate.term.length
+    if (candidate instanceof LemmaSearch) return 400_000 / 20_000
+    if (candidate instanceof MorphSearch) return 400_000 / 2_000
+
+    if (candidate instanceof WordSearch) return 400_000 / (20_000 * candidate.term.length / 5)
+
+    if (candidate instanceof ReferenceSearch) {
+      const length = candidate.term.split('.').length;
+      if (length >= 3) return 30_000 / (66 * 20 * 20);
+      if (length == 2) return 30_000 / (66 * 20);
+      if (length == 1) return 30_000 / (66);
+      return 400_000;
+    }
+
+    return 400_000;
+  }
 
   expandToVerse = true;
 
   search() {
+    if (this.terms.length == 0) return { message: "No search terms" } as SearchError;
+
     if (this.terms.length == 1) return this.terms[0].search();
 
     let prepassResults = this.prepass();
@@ -771,6 +808,9 @@ export class AndSearch extends MultiSearch {
 
       var match = term.filter(entry);
       if (!match.length && !this.any) return [];
+
+      if (term instanceof ReferenceSearch)
+        continue;
 
       match.forEach((m) => results.add(m));
     }
@@ -870,6 +910,8 @@ export class PhraseSearch extends MultiSearch {
     // should skip whitespace and punctuation
     return !entry.translation.match(/[a-z]/i);
   };
+
+  prepass = () => this.terms[0].prepass()
 
   search(): SearchResult[] | SearchError {
     if (this.terms.length == 1) {

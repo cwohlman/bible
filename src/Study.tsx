@@ -14,7 +14,13 @@ import {
 import * as React from "react";
 import { Fragment } from "react";
 import { classNames } from "./classNames";
-import { Concordance, LemmaEntry, SearchResult } from "./Concordance";
+import {
+  Concordance,
+  LemmaEntry,
+  SearchError,
+  SearchResult,
+  SearchResults,
+} from "./Concordance";
 import { colorWheel } from "./colors";
 
 export const strongsColorWheel = colorWheel();
@@ -110,27 +116,64 @@ export default function Study({
   // TODO: move results here instead of passing them in
   const { searchTerm, hide: hidden } = study;
 
-  const searchResults = React.useMemo(() => {
+  const [searchResults, setSearchResults] = React.useState<
+    SearchResults | SearchError
+  >({ message: "Loading..." } as SearchError);
+
+  React.useEffect(() => {
     if (!concordance) {
-      return { message: "Loading" };
+      setSearchResults({ message: "Loading " } as SearchError);
+      return;
     }
     if (!searchTerm) {
-      return { message: "Please type your search above" };
+      setSearchResults({
+        message: "Please type your search above",
+      } as SearchError);
+      return;
     }
 
-    return concordance.search(searchTerm);
+    try {
+      setSearchResults(concordance.search(searchTerm));
+    } catch (error) {
+      console.log(error.stack);
+      setSearchResults({ message: "Uncaught: " + error.stack } as SearchError);
+    }
   }, [searchTerm, concordance]);
-  const results = "message" in searchResults ? searchResults.message : searchResults.results;
+
+  const results =
+    "message" in searchResults ? searchResults.message : searchResults.results;
   const timing = "message" in searchResults ? null : searchResults.time;
 
   const debounceTimeout = React.useRef<number>();
 
-  const hide = () => update(draft => { draft.hide = ! draft.hide });
+  const hide = () =>
+    update((draft) => {
+      draft.hide = !draft.hide;
+    });
+
+  const displayResults = React.useMemo(
+    () =>
+      typeof results == "string" ? (
+        <p className="text-lg italic text-center p-5 text-gray-800">
+          {results}
+        </p>
+      ) : (
+        concordance &&
+        results.slice(0, 300).map((r, i) => {
+          return <Result key={i} result={r} concordance={concordance} />;
+          // return <div key={i}>{r.verse}</div>
+        })
+      ),
+    [results]
+  );
 
   return (
     <div
       style={{ maxHeight: "calc(100vh - 2.5rem)" }}
-      className={classNames("flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200", ! hidden && "h-full")}
+      className={classNames(
+        "flex flex-col overflow-hidden lg:w-1c lg:mx-5 lg:mt-5 lg:mb-0 mb-5 lg:rounded-lg shadow-lg lg:shrink-0 bg-slate-100 border border-gray-200",
+        !hidden && "h-full"
+      )}
     >
       <div className="border-b border-gray-200 p-1">
         <div className="flex items-center">
@@ -138,8 +181,10 @@ export default function Study({
             <label htmlFor="searchTerm" className="sr-only">
               Search
             </label>
-            <form className="relative rounded-md shadow-sm" onSubmit={e => {
-                e.preventDefault(); 
+            <form
+              className="relative rounded-md shadow-sm"
+              onSubmit={(e) => {
+                e.preventDefault();
                 if (debounceTimeout.current) {
                   clearTimeout(debounceTimeout.current);
                 }
@@ -148,12 +193,13 @@ export default function Study({
                   study.searchTerm = data.get("searchTerm")?.toString() || "";
                   return study;
                 });
-              }}>
+              }}
+            >
               <button className="absolute inset-y-px left-px px-3 flex focus:border-2 focus:border-indigo-500 focus:z-10 hover:bg-blue-100 hover:border-blue-200 hover:z-1 border-r border-gray-200 rounded-l-md items-center pointer-events text-gray-700">
                 <BookOpenIcon className="w-5 h-5" />
               </button>
               <input
-                type="text"
+                type="search"
                 name="searchTerm"
                 id="searchTerm"
                 defaultValue={searchTerm}
@@ -174,9 +220,20 @@ export default function Study({
               />
               <div className="absolute inset-y-0 right-0 flex items-center">
                 <div className="text-gray-500 text-xs italic mr-3">
-                  {results instanceof Array
-                    ? `${results.length} Results`
-                    : null}
+                  {results instanceof Array ? (
+                    <span
+                      className={
+                        results.length > 1200 ? "text-red-800 bold" : ""
+                      }
+                    >{`${results.length.toLocaleString("en-us", {
+                      useGrouping: true,
+                    })} results`}</span>
+                  ) : null}
+                  {typeof timing == "number" ? (
+                    <span
+                      className={timing > 100 ? "text-red-800 bold" : ""}
+                    >{` in ${timing}ms`}</span>
+                  ) : null}
                 </div>
                 <label htmlFor="searchType" className="sr-only">
                   Search For
@@ -185,8 +242,12 @@ export default function Study({
                   id="searchType"
                   name="searchType"
                   className="focus:ring-indigo-500 focus:border-indigo-500 h-full py-0 pl-2 pr-7 border-transparent bg-transparent text-gray-800 text-sm rounded-md capitalize"
-                  defaultValue="lemma"
                   value={study.searchType}
+                  onChange={(e) => {
+                    update((draft) => {
+                      draft.searchType = e.currentTarget.value as SearchType;
+                    });
+                  }}
                 >
                   {searchTypeOptions.map((option) => (
                     <option key={option}>{option}</option>
@@ -264,7 +325,9 @@ export default function Study({
             </button>
           </div>
           <div className="flex items-center">
-            <span className="text-xs font-medium  ml-1 text-gray-700">Show</span>
+            <span className="text-xs font-medium  ml-1 text-gray-700">
+              Show
+            </span>
 
             {/* <button
               type="button"
@@ -319,22 +382,17 @@ export default function Study({
       </div>
 
       <div className="grow overflow-y-auto">
-        {hidden ? <p className="text-lg italic text-center p-5 text-gray-800">
-            Minimized
-          </p> : typeof results == "string" ? (
+        {hidden ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            {results}
+            Minimized
           </p>
-        ) :  (
-          concordance &&
-          results.slice(0, 300).map((r, i) => {
-            return <Result key={i} result={r} concordance={concordance} />;
-            // return <div key={i}>{r.verse}</div>
-          })
+        ) : (
+          displayResults
         )}
         {results.length > 300 ? (
           <p className="text-lg italic text-center p-5 text-gray-800">
-            {results.length} results found. Only the first 300 results are shown.
+            {results.length} results found. Only the first 300 results are
+            shown.
           </p>
         ) : null}
         {results.length < 1 ? (
@@ -342,9 +400,11 @@ export default function Study({
             No results found.
           </p>
         ) : null}
-        {
-          timing ? <p className="text-xs italic text-center p-2 text-gray-700">Search time {timing}ms</p> : null
-        }
+        {timing ? (
+          <p className="text-xs italic text-center p-2 text-gray-700">
+            Search time {timing}ms
+          </p>
+        ) : null}
       </div>
       <div className="border-t border-gray-200">
         <div className="p-1 flex flex-wrap gap-2 justify-between">
@@ -403,10 +463,17 @@ export default function Study({
           <div>
             <button
               type="button"
-              className={classNames(hidden ? "bg-green-100" : "bg-yellow-100", "inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500")}
+              className={classNames(
+                hidden ? "bg-green-100" : "bg-yellow-100",
+                "inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              )}
               onClick={() => hide()}
             >
-              {hidden ? <PlusIcon  className="w-4 h-4 inline"/> : <MinusIcon className="w-4 h-4 inline" />}
+              {hidden ? (
+                <PlusIcon className="w-4 h-4 inline" />
+              ) : (
+                <MinusIcon className="w-4 h-4 inline" />
+              )}
             </button>
             <button
               type="button"
@@ -460,7 +527,7 @@ export function Result({
           <Lemma
             key={i}
             lemma={lemma}
-            highlight={!! result.match.find(a => a.id == lemma.id)}
+            highlight={!!result.match.find((a) => a.id == lemma.id)}
             className=""
           />
         ))}
