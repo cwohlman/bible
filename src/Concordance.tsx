@@ -60,7 +60,6 @@ export class Concordance {
           const lemma = word.getAttribute("lemma");
           const morph = word.getAttribute("morph");
           
-          
           this.addLemma(this.currentVerse, word.textContent || "", lemma, morph);
         } else if (child.tagName === "transChange") {
           const word = child;
