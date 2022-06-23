@@ -48,6 +48,21 @@ export type SearchResults = {
   results: SearchResult[];
 };
 
+type compactFormat = [
+  LemmaEntry["id"],
+  LemmaEntry["reference"],
+  LemmaEntry["position"],
+  LemmaEntry["translation"],
+  LemmaEntry["spaceAfter"],
+  LemmaEntry["words"],
+  LemmaEntry["lemma"],
+  LemmaEntry["morph"],
+][];
+
+type jsonFormat = {
+  lemmas: LemmaEntry[];
+};
+
 export class Concordance {
   wordIndex: { [word: string]: LemmaEntry[] } = {};
   wordList: string[] = [];
@@ -67,7 +82,25 @@ export class Concordance {
 
   textIndex: MiniSearch<VerseEntry>;
 
-  constructor(data) {
+  constructor(data: string | compactFormat | jsonFormat) {
+    if (typeof data == "string") {
+      this.parseData(data);
+    }
+    else if (data instanceof Array) {
+      this.loadCompact(data);
+    }
+    else if (data && typeof data == "object" && "lemmas" in data) {
+      this.loadData(data);
+    }
+
+
+    this.translationList = Object.keys(this.translationIndex);
+    this.verseReferenceList = Object.keys(this.verseReferenceIndex);
+    this.wordList = Object.keys(this.wordIndex);
+  }
+
+  parseData(data: string) {
+
     const chapters = parse(data).getElementsByTagName("chapter");
 
     // this.textIndex = new MiniSearch();
@@ -79,10 +112,42 @@ export class Concordance {
 
       Array.from(chapter.childNodes).forEach((child) => this.parseNode(child));
 
-      this.translationList = Object.keys(this.translationIndex);
-      this.verseReferenceList = Object.keys(this.verseReferenceIndex);
-      this.wordList = Object.keys(this.wordIndex);
     });
+  }
+
+  loadData(data: { lemmas: LemmaEntry[] }) {
+    this.lemmaList = data.lemmas;
+
+    this.lemmaList.forEach(lemma => {
+      let verse = this.verseReferenceIndex[lemma.reference];
+      if (! verse) {
+        verse = this.addVerse(lemma.reference)
+      }
+
+      this.indexLemma(verse, lemma);
+    })
+  }
+  loadCompact(data: compactFormat) {
+
+    data.forEach(compact => {
+      const lemma = {
+        id: compact[0],
+        reference: compact[1],
+        position: compact[2],
+        translation: compact[3],
+        spaceAfter: compact[4],
+        words: compact[5],
+        lemma: compact[6],
+        morph: compact[7],
+      }
+
+      let verse = this.verseReferenceIndex[lemma.reference];
+      if (! verse) {
+        verse = this.addVerse(lemma.reference)
+      }
+
+      this.indexLemma(verse, lemma);
+    })
   }
 
   search(input: string): SearchResults | SearchError {
@@ -185,14 +250,19 @@ export class Concordance {
       morph: this.parseMorphCodes(morph),
     };
 
-    verse.words.push(entry);
+    
     this.previousLemma = entry;
     this.lemmaList.push(entry);
 
-    const normalizedTranslation = translation.toLocaleLowerCase();
-    const translationIndexEntry = (this.translationIndex[
-      normalizedTranslation
-    ] = this.translationIndex[normalizedTranslation] || []);
+    this.indexLemma(verse, entry);
+
+    return entry;
+  }
+  private indexLemma(verse: VerseEntry, entry: LemmaEntry) {
+    verse.words.push(entry);
+
+    const normalizedTranslation = entry.translation.toLocaleLowerCase();
+    const translationIndexEntry = (this.translationIndex[normalizedTranslation] = this.translationIndex[normalizedTranslation] || []);
     translationIndexEntry.push(entry);
 
     entry.words.forEach((word) => {
@@ -212,9 +282,8 @@ export class Concordance {
         this.morphIndex[morph] || []);
       morphIndexEntry.push(entry);
     });
-
-    return entry;
   }
+
   parseMorphCodes(morph: string | null): string[] {
     if (!morph) return [];
 
@@ -775,7 +844,9 @@ export class MultiSearch extends Search {
       ? prepassResults
           .uniq("reference")
           .map((a) => this.concordance.getVerse(a.reference))
-      : prepassResults.map((a) => [a]);
+      : prepassResults.map((a: LemmaEntry) => [a])
+     
+      ;
 
     return searchSets
       .map((a) => this.filter(a))

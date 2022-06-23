@@ -18,7 +18,7 @@ const App = () => {
 
   React.useEffect(() => {
     import("./data")
-      .then((response) => response.bible)
+      .then((response) => response.compact as any[])
       .then((text) => {
         setConcordance(new Concordance(text));
       })

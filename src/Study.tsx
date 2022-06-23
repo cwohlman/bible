@@ -482,6 +482,10 @@ export default function Study({
             <button
               type="button"
               className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => {
+                saveJSON(concordance?.lemmaList, "lemmas.json")
+                saveJSON(concordance?.verseList, "verses.json")
+              }}
             >
               Export
               <DocumentDownloadIcon className="w-4 h-4 inline" />
@@ -660,4 +664,34 @@ export function Lemma({
       {/* TODO: the actual greek word? */}
     </div>
   );
+}
+
+
+/* function to save JSON to file from browser
+* adapted from http://bgrins.github.io/devtools-snippets/#console-save
+* @param {Object} data -- json object to save
+* @param {String} file -- file name to save to 
+*/
+function saveJSON(data, filename){
+
+  if(!data) {
+      console.error('No data')
+      return;
+  }
+
+  if(!filename) filename = 'console.json'
+
+  if(typeof data === "object"){
+      data = JSON.stringify(data, undefined, 4)
+  }
+
+  var blob = new Blob([data], {type: 'text/json'}),
+      e    = document.createEvent('MouseEvents'),
+      a    = document.createElement('a')
+
+  a.download = filename
+  a.href = window.URL.createObjectURL(blob)
+  a.dataset.downloadurl =  ['text/json', a.download, a.href].join(':')
+  e.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+  a.dispatchEvent(e)
 }
