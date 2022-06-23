@@ -7,6 +7,10 @@ import Study, { StudyParams } from "./Study";
 import { useImmer } from "use-immer";
 import { useEffect } from "react";
 import getId from "./getId";
+import { sendMessage } from "./registerServiceworker";
+
+window.sendMessage = sendMessage;
+
 
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
