@@ -28,10 +28,12 @@
   "dependencies": {
     "@headlessui/react": "^1.6.5",
     "@heroicons/react": "^1.0.6",
+    "@parcel/service-worker": "^2.6.2",
     "flexsearch": "^0.7.21",
     "immer": "^9.0.15",
     "lazy.js": "^0.5.1",
     "minisearch": "^5.0.0",
+    "node-html-parser": "^5.3.3",
     "random-seed": "^0.3.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

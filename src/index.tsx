@@ -8,6 +8,8 @@ import { useImmer } from "use-immer";
 import { useEffect } from "react";
 import getId from "./getId";
 
+import "./registerServiceWorker"
+
 const App = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [concordance, setConcordance] = React.useState<Concordance>();

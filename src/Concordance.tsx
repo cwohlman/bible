@@ -75,9 +75,9 @@ export class Concordance {
     Array.from(chapters).forEach((chapter) => {
       let verseId = chapter.getAttribute("osisID");
 
-      this.currentVerse = this.addVerse(verseId);
+      this.currentVerse = this.addVerse(verseId || "invalid");
 
-      Array.from(chapter.childNodes).forEach((child) => this.parseNode(child));
+      Array.from(chapter.childNodes).forEach((child) => this.parseNode(child as any));
 
       this.translationList = Object.keys(this.translationIndex);
       this.verseReferenceList = Object.keys(this.verseReferenceIndex);
@@ -106,44 +106,45 @@ export class Concordance {
   previousLemma: LemmaEntry;
 
   parseNode(child: Node) {
-    if (child instanceof Element) {
-      if (child.tagName === "verse") {
-        this.currentVerse = this.addVerse(child.getAttribute("osisID"));
-        this.currentVerse.text = child.textContent || "";
-      } else if (child.tagName === "w") {
-        const word = child;
+    if (child.nodeType == 1) {
+      const element = child as Element;
+      if (element.tagName.toLowerCase() === "verse") {
+        this.currentVerse = this.addVerse(element.getAttribute("osisID"));
+        this.currentVerse.text = element.textContent || "";
+      } else if (element.tagName.toLowerCase() === "w") {
+        const word = element;
         const lemma = word.getAttribute("lemma");
         const morph = word.getAttribute("morph");
 
         this.addLemma(this.currentVerse, word.textContent || "", lemma, morph);
-      } else if (child.tagName === "transChange") {
-        const word = child;
+      } else if (element.tagName.toLowerCase() === "transchange") {
+        const word = element;
 
         this.addLemma(this.currentVerse, word.textContent || "", null, null);
-      } else if (child.tagName === "foreign") {
-        const word = child;
+      } else if (element.tagName.toLowerCase() === "foreign") {
+        const word = element;
 
         this.addLemma(this.currentVerse, word.textContent || "", null, null);
-      } else if (child.tagName === "title") {
-        child.childNodes.forEach((node) => this.parseNode(node));
-      } else if (child.tagName === "q") {
-        child.childNodes.forEach((node) => this.parseNode(node));
-      } else if (child.tagName === "inscription") {
-        child.childNodes.forEach((node) => this.parseNode(node));
-      } else if (child.tagName === "divineName") {
-        child.childNodes.forEach((node) => this.parseNode(node));
-      } else if (child.tagName === "milestone") {
+      } else if (element.tagName.toLowerCase() === "title") {
+        element.childNodes.forEach((node) => this.parseNode(node));
+      } else if (element.tagName.toLowerCase() === "q") {
+        element.childNodes.forEach((node) => this.parseNode(node));
+      } else if (element.tagName.toLowerCase() === "inscription") {
+        element.childNodes.forEach((node) => this.parseNode(node));
+      } else if (element.tagName.toLowerCase() === "divinename") {
+        element.childNodes.forEach((node) => this.parseNode(node));
+      } else if (element.tagName.toLowerCase() === "milestone") {
         // Ignore milestones
-      } else if (child.tagName === "note") {
+      } else if (element.tagName.toLowerCase() === "note") {
         // Ignore notes
       } else {
-        throw new Error("Unrecognized node:" + child.tagName);
+        throw new Error("Unrecognized node:" + element.tagName);
       }
-    } else if (child instanceof Text) {
-      if (child.wholeText == " ")
+    } else if (child.nodeType == 3) {
+      if (child.textContent == " ")
         this.previousLemma && (this.previousLemma.spaceAfter = true);
-      if (child.wholeText.trim() != "")
-        this.addLemma(this.currentVerse, child.wholeText, null, null);
+      if ((child.textContent?.trim() || "") != "")
+        this.addLemma(this.currentVerse, child.textContent || "", null, null);
     } else {
       throw new Error("Unrecognized node:" + child.nodeName);
     }
