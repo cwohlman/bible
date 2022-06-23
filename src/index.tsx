@@ -7,9 +7,7 @@ import Study, { StudyParams } from "./Study";
 import { useImmer } from "use-immer";
 import { useEffect } from "react";
 import getId from "./getId";
-import { sendMessage } from "./registerServiceworker";
 
-window.sendMessage = sendMessage;
 
 
 const App = () => {
@@ -19,17 +17,6 @@ const App = () => {
     field: "bible" | "text";
     order: "asc" | "desc";
   }>({ field: "bible", order: "asc" });
-
-  React.useEffect(() => {
-    import("./data")
-      .then((response) => response.compact as any[])
-      .then((text) => {
-        setConcordance(new Concordance(text));
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }, []);
 
   const [studies, setStudies] = useImmer<StudyParams[]>(() => {
     try {
@@ -86,7 +73,6 @@ const App = () => {
             })
           }
           close={() => setStudies((all) => all.filter((a) => a.id != study.id))}
-          concordance={concordance}
         />
       ))}
 

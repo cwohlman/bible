@@ -30,6 +30,7 @@ export type SearchResult = {
   reference: string;
   relevence: number;
   match: LemmaEntry[];
+  context: LemmaEntry[];
 };
 
 export type SearchError = {
@@ -316,6 +317,8 @@ export class Concordance {
    * @returns the set of lemmas, in order, which represent the verse
    */
   getVerse(verse: string): LemmaEntry[] {
+    if (! verse) return [];
+
     const exactVerse = this.verseReferenceIndex[verse];
 
     if (exactVerse) return exactVerse.words;
@@ -417,13 +420,14 @@ export class Search {
     if ("message" in results) return results;
 
     return results
-      .map((a) => this.filter([a]))
+      .map((a: LemmaEntry) => this.filter([a]))
       .filter(any)
-      .map((match) => ({
-        id: (match as LemmaEntry[])[0].id,
+      .map((match: LemmaEntry[]) => ({
+        id: match[0].id,
         match: match as LemmaEntry[],
-        reference: (match as LemmaEntry[])[0].reference,
+        reference: match[0].reference,
         relevence: 1,
+        context: this.concordance.getVerse(match[0].reference),
       }))
       .toArray();
   }
@@ -845,19 +849,20 @@ export class MultiSearch extends Search {
     const searchSets = this.expandToVerse
       ? prepassResults
           .uniq("reference")
-          .map((a) => this.concordance.getVerse(a.reference))
+          .map((a: LemmaEntry) => this.concordance.getVerse(a.reference))
       : prepassResults.map((a: LemmaEntry) => [a])
      
       ;
 
     return searchSets
-      .map((a) => this.filter(a))
+      .map((a: LemmaEntry[]) => this.filter(a))
       .filter(any)
-      .map((match) => ({
+      .map((match: LemmaEntry[]) => ({
         id: (match as LemmaEntry[])[0].id,
         match: match as LemmaEntry[],
         reference: (match as LemmaEntry[])[0].reference,
         relevence: 1,
+        context: this.concordance.getVerse(match[0].reference),
       }))
       .toArray();
   }
@@ -1018,11 +1023,12 @@ export class PhraseSearch extends MultiSearch {
     return searchSets
       .map((a) => this.filter(a, true))
       .filter(any)
-      .map((match) => ({
+      .map((match: LemmaEntry[]) => ({
         id: (match as LemmaEntry[])[0].id,
         match: match as LemmaEntry[],
         reference: (match as LemmaEntry[])[0].reference,
         relevence: 1,
+        context: this.concordance.getVerse(match[0].reference),
       }))
       .toArray();
   }
