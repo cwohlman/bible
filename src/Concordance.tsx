@@ -141,6 +141,8 @@ export class Concordance {
         morph: compact[7],
       }
 
+      this.lemmaList.push(lemma);
+
       let verse = this.verseReferenceIndex[lemma.reference];
       if (! verse) {
         verse = this.addVerse(lemma.reference)
