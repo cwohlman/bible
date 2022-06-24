@@ -447,6 +447,8 @@ export class Search {
     index: Concordance,
     advanced: boolean = true
   ): Search {
+    input = normalizeQuotes(input);
+
     let parts: Search[] = [];
 
     if (advanced) {
@@ -1033,3 +1035,33 @@ export class PhraseSearch extends MultiSearch {
       .toArray();
   }
 }
+
+
+const normalizeQuotes = (str: string) => {
+  const allQuotes = [
+    '“', // U+201c
+    '”', // U+201d
+    '«', // U+00AB
+    '»', // U+00BB
+    '„', // U+201E
+    '“', // U+201C
+    '‟', // U+201F
+    '”', // U+201D
+    '❝', // U+275D
+    '❞', // U+275E
+    '〝', // U+301D
+    '〞', // U+301E
+    '〟', // U+301F
+    '＂', // U+FF02
+  ];
+
+  const stdQuote = '"'; // U+0022
+
+  const normalized = allQuotes.reduce((strNorm, quoteChar) => {
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    const re = new RegExp(quoteChar, 'g');
+    return strNorm.replace(re, stdQuote);
+  }, str);
+
+  return normalized;
+};
