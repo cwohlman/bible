@@ -19,9 +19,18 @@ import {
   SearchError,
   SearchResult,
   SearchResults,
+
 } from "./Concordance";
 import { colorWheel } from "./colors";
 import { sendMessage } from "./registerServiceworker";
+import { 
+  exportResults,
+  outputOptions,
+  formatOptions,
+  OutputType,
+  FormatType,
+} from "./exportResults";
+
 
 export const strongsColorWheel = colorWheel();
 
@@ -37,17 +46,7 @@ export type GroupByType =
   | "strongs"
   | "morph";
 export type SortByType = "bible" | "alphabetical";
-export type OutputType =
-  | "visible"
-  | "testament"
-  | "book"
-  | "chapter"
-  | "verse"
-  | "KJV"
-  // | "lemma"
-  | "strongs"
-  | "morph";
-export type FormatType = "csv" | "json" | "list" | "pretty";
+
 export type ContextType =
   | "lemma"
   | "5 words"
@@ -69,18 +68,6 @@ export const groupByOptions = [
   "morph",
 ];
 export const sortByOptions = ["bible", "alphabetical"];
-export const outputOptions = [
-  "visible",
-  "testament",
-  "book",
-  "chapter",
-  "verse",
-  "KJV",
-  // "lemma",
-  "strongs",
-  "morph",
-];
-export const formatOptions = ["csv", "json", "list", "pretty"];
 export const contextOptions = ["lemma", "5 words", "1 verse", "3 verses"];
 
 export type StudyParams = {
@@ -444,6 +431,10 @@ export default function Study({
               name="output"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               value={study.output}
+              onChange={(e) => {
+                const selectedOption = e.currentTarget.value;
+                update(study => { study.output = selectedOption });
+              }}
             >
               {outputOptions.map((value) => (
                 <option key={value}>{value}</option>
@@ -477,7 +468,12 @@ export default function Study({
             <button
               type="button"
               className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              onClick={() => {
+                const data = exportResults(results, study.output, study.outputFormat);
 
+                console.log(data);
+                // download(data);
+              }}
             >
               Export
               <DocumentDownloadIcon className="w-4 h-4 inline" />
