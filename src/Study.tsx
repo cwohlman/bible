@@ -15,13 +15,22 @@ import * as React from "react";
 import { Fragment } from "react";
 import { classNames } from "./classNames";
 import {
-  Concordance,
   LemmaEntry,
   SearchError,
   SearchResult,
   SearchResults,
+
 } from "./Concordance";
 import { colorWheel } from "./colors";
+import { sendMessage } from "./registerServiceworker";
+import { 
+  exportResults,
+  outputOptions,
+  formatOptions,
+  OutputType,
+  FormatType,
+} from "./exportResults";
+
 
 export const strongsColorWheel = colorWheel();
 
@@ -37,17 +46,7 @@ export type GroupByType =
   | "strongs"
   | "morph";
 export type SortByType = "bible" | "alphabetical";
-export type OutputType =
-  | "visible"
-  | "testament"
-  | "book"
-  | "chapter"
-  | "verse"
-  | "KJV"
-  // | "lemma"
-  | "strongs"
-  | "morph";
-export type FormatType = "csv" | "json" | "list" | "pretty";
+
 export type ContextType =
   | "lemma"
   | "5 words"
@@ -69,18 +68,6 @@ export const groupByOptions = [
   "morph",
 ];
 export const sortByOptions = ["bible", "alphabetical"];
-export const outputOptions = [
-  "visible",
-  "testament",
-  "book",
-  "chapter",
-  "verse",
-  "KJV",
-  // "lemma",
-  "strongs",
-  "morph",
-];
-export const formatOptions = ["csv", "json", "list", "pretty"];
 export const contextOptions = ["lemma", "5 words", "1 verse", "3 verses"];
 
 export type StudyParams = {
@@ -106,12 +93,10 @@ export default function Study({
   study,
   update,
   close,
-  concordance,
 }: {
   study: StudyParams;
   update: (modifier: (draft: StudyParams) => void) => void;
   close: () => void;
-  concordance?: Concordance;
 }) {
   // TODO: move results here instead of passing them in
   const { searchTerm, hide: hidden } = study;
@@ -121,10 +106,6 @@ export default function Study({
   >({ message: "Loading..." } as SearchError);
 
   React.useEffect(() => {
-    if (!concordance) {
-      setSearchResults({ message: "Loading " } as SearchError);
-      return;
-    }
     if (!searchTerm) {
       setSearchResults({
         message: "Please type your search above",
@@ -133,12 +114,14 @@ export default function Study({
     }
 
     try {
-      setSearchResults(concordance.search(searchTerm));
+      sendMessage(searchTerm).then(results => {
+        setSearchResults(results as any);
+      })
     } catch (error) {
       console.log(error.stack);
       setSearchResults({ message: "Uncaught: " + error.stack } as SearchError);
     }
-  }, [searchTerm, concordance]);
+  }, [searchTerm]);
 
   const results =
     "message" in searchResults ? searchResults.message : searchResults.results;
@@ -168,7 +151,6 @@ export default function Study({
             <Result
               key={i}
               result={r}
-              concordance={concordance as Concordance}
               interlinear={study.interlinear}
               visible={study.visible}
             />
@@ -449,6 +431,10 @@ export default function Study({
               name="output"
               className="block ml-1 pl-3 pr-10 py-1 capitalize  border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-xs rounded-md"
               value={study.output}
+              onChange={(e) => {
+                const selectedOption = e.currentTarget.value;
+                update(study => { study.output = selectedOption });
+              }}
             >
               {outputOptions.map((value) => (
                 <option key={value}>{value}</option>
@@ -483,8 +469,10 @@ export default function Study({
               type="button"
               className="inline-flex ml-1 p-1 self-start border border-gray-300 text-xs font-medium rounded  text-indigo-900 bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               onClick={() => {
-                saveJSON(concordance?.lemmaList, "lemmas.json")
-                saveJSON(concordance?.verseList, "verses.json")
+                const data = exportResults(results, study.output, study.outputFormat);
+
+                console.log(data);
+                // download(data);
               }}
             >
               Export
@@ -524,28 +512,28 @@ export function Result({
   result,
   visible,
   interlinear,
-  concordance,
 }: {
   result: SearchResult;
   visible: {
     [k in VisibleType]: boolean;
   };
   interlinear: boolean;
-  concordance: Concordance;
 }) {
-  const context = React.useMemo(() => {
-    let firstId = result.match.reduce((m, a) => Math.min(m, a.id), Infinity)
-    let lastId = result.match.reduce((m, a) => Math.max(m, a.id), 0)
+  let firstId = result.match.reduce((m, a) => Math.min(m, a.id), Infinity)
+  let lastId = result.match.reduce((m, a) => Math.max(m, a.id), 0)
 
-    if (lastId < firstId) [firstId, lastId] = [lastId, firstId];
+  if (lastId < firstId) [firstId, lastId] = [lastId, firstId];
 
-    if (lastId - firstId <= 2)
-      // returns up to 7 lemmas
-      return concordance?.getLemmasById(firstId - 2, lastId + 2);
+  // returns up to 7 results
+  if (lastId - firstId <= 2) {
+    firstId -= 2;
+    lastId += 2;
+  }
 
-    // returns only matching lemas and what's in between them
-    return concordance?.getLemmasById(firstId, lastId);
-  }, [result.id - 2, result.id + 2]);
+  const context = result.context.filter(a => {
+    return a.id >= firstId && a.id <= lastId
+  })
+
   return (
     <div className="even:bg-gray-50 odd:bg-gray-100 pb-3">
       <div className="">
